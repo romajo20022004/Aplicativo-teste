@@ -13,6 +13,19 @@ function authHeader() {
   };
 }
 
+// ================= NAV =================
+function mostrar(sec) {
+  document.getElementById("pacientes").style.display =
+    sec === "pacientes" ? "block" : "none";
+
+  document.getElementById("agenda").style.display =
+    sec === "agenda" ? "block" : "none";
+
+  document.getElementById("financeiro").style.display =
+    sec === "financeiro" ? "block" : "none";
+}
+
+// ================= AUTH =================
 function applyAuth() {
   if (window.USER) {
     document.getElementById("user-info").innerText =
@@ -49,6 +62,53 @@ async function carregarPacientes() {
   });
 }
 
+// ================= MODAL PACIENTE =================
+function abrirModalPaciente() {
+  document.getElementById("modal-paciente").style.display = "block";
+}
+
+function fecharModalPaciente() {
+  document.getElementById("modal-paciente").style.display = "none";
+}
+
+async function salvarPaciente() {
+
+  const nome = document.getElementById("p-nome").value;
+  const telefone = document.getElementById("p-telefone").value;
+
+  if (!nome || !telefone) {
+    alert("Preencha nome e telefone");
+    return;
+  }
+
+  const body = {
+    nome,
+    nascimento: "2000-01-01",
+    cpf: Math.random().toString().slice(2,13),
+    sexo: "M",
+    telefone
+  };
+
+  const res = await fetch(API_P, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeader()
+    },
+    body: JSON.stringify(body)
+  });
+
+  const json = await res.json();
+
+  if (!json.ok) {
+    alert(json.error);
+    return;
+  }
+
+  fecharModalPaciente();
+  carregarPacientes();
+}
+
 // ================= MEDICOS =================
 async function carregarMedicos() {
 
@@ -57,8 +117,6 @@ async function carregarMedicos() {
   });
 
   const json = await res.json();
-
-  console.log("MEDICOS:", json);
 
   const select = document.getElementById("ag-medico");
   const filtro = document.getElementById("agenda-medico-filtro");
@@ -120,8 +178,6 @@ async function carregarAgenda() {
 
   const json = await res.json();
 
-  console.log("AGENDA:", json);
-
   const tbody = document.getElementById("agenda-lista");
   tbody.innerHTML = "";
 
@@ -144,8 +200,9 @@ async function carregarAgenda() {
   });
 }
 
-// ================= MODAL =================
+// ================= MODAL AGENDA =================
 async function abrirModalAg() {
+
   await carregarPacientesSelect();
   await carregarMedicos();
 
@@ -169,6 +226,11 @@ async function salvarAg() {
 
   console.log("ENVIANDO:", body);
 
+  if (!body.paciente_id || !body.medico_id || !body.data || !body.hora) {
+    alert("Preencha todos os campos");
+    return;
+  }
+
   const res = await fetch(API_A, {
     method: "POST",
     headers: {
@@ -183,14 +245,13 @@ async function salvarAg() {
   console.log("RESPOSTA:", json);
 
   if (!json.ok) {
-    alert("ERRO AO SALVAR: " + json.error);
+    alert(json.error);
     return;
   }
 
   alert("Agendamento criado!");
 
-  document.getElementById("modal").style.display = "none";
-
+  fecharModalAg();
   carregarAgenda();
 }
 
