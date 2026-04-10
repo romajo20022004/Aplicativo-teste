@@ -13,8 +13,9 @@ table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}
 button{cursor:pointer;margin-right:6px}
 .hidden{display:none !important}
-#modal-paciente,#modal{display:none;position:fixed;top:20%;left:50%;transform:translateX(-50%);background:#fff;padding:20px;border:1px solid #ccc;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);min-width:320px}
+#modal-paciente,#modal{display:none;position:fixed;top:20%;left:50%;transform:translateX(-50%);background:#fff;padding:20px;border:1px solid #ccc;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);min-width:360px}
 input,select{padding:8px;margin-bottom:10px;width:100%;box-sizing:border-box}
+label{display:block;font-size:13px;margin-bottom:4px}
 </style>
 
 </head>
@@ -57,7 +58,12 @@ input,select{padding:8px;margin-bottom:10px;width:100%;box-sizing:border-box}
   <!-- AGENDA -->
   <section id="agenda" style="display:none;">
     <div class="card">
+      <label for="agenda-medico-filtro">Médico</label>
+      <select id="agenda-medico-filtro"></select>
+
+      <label for="agenda-data">Data</label>
       <input type="date" id="agenda-data">
+
       <button id="btn-novo-agendamento" onclick="abrirModalAg()">+ Novo</button>
     </div>
 
@@ -67,6 +73,7 @@ input,select{padding:8px;margin-bottom:10px;width:100%;box-sizing:border-box}
           <tr>
             <th>Hora</th>
             <th>Paciente</th>
+            <th>Médico</th>
             <th>Status</th>
             <th id="col-acoes-agenda">Ações</th>
           </tr>
@@ -104,10 +111,19 @@ input,select{padding:8px;margin-bottom:10px;width:100%;box-sizing:border-box}
   <div class="card">
     <h3>Novo Agendamento</h3>
 
+    <label for="ag-paciente">Paciente</label>
     <select id="ag-paciente"></select>
+
+    <label for="ag-medico">Médico</label>
+    <select id="ag-medico"></select>
+
+    <label for="ag-data">Data</label>
     <input type="date" id="ag-data">
+
+    <label for="ag-hora">Hora</label>
     <input type="time" id="ag-hora">
 
+    <label for="ag-status">Status</label>
     <select id="ag-status">
       <option value="agendado">Agendado</option>
       <option value="confirmado">Confirmado</option>
