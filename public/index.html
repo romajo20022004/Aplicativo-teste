@@ -12,10 +12,31 @@ main{flex:1;padding:20px}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}
 button{cursor:pointer;margin-right:6px}
-.hidden{display:none !important}
-#modal-paciente,#modal{display:none;position:fixed;top:20%;left:50%;transform:translateX(-50%);background:#fff;padding:20px;border:1px solid #ccc;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);min-width:360px}
-input,select{padding:8px;margin-bottom:10px;width:100%;box-sizing:border-box}
-label{display:block;font-size:13px;margin-bottom:4px}
+#modal-paciente,#modal{
+  display:none;
+  position:fixed;
+  top:12%;
+  left:50%;
+  transform:translateX(-50%);
+  background:#fff;
+  padding:20px;
+  border:1px solid #ccc;
+  border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  min-width:380px;
+  z-index:1000
+}
+input,select{
+  padding:8px;
+  margin-bottom:10px;
+  width:100%;
+  box-sizing:border-box
+}
+label{
+  display:block;
+  font-size:13px;
+  margin-bottom:4px
+}
 </style>
 
 </head>
@@ -35,7 +56,6 @@ label{display:block;font-size:13px;margin-bottom:4px}
 
 <main>
 
-  <!-- PACIENTES -->
   <section id="pacientes">
     <div class="card">
       <button id="btn-novo-paciente" onclick="abrirModalPaciente()">+ Novo Paciente</button>
@@ -47,7 +67,7 @@ label{display:block;font-size:13px;margin-bottom:4px}
           <tr>
             <th>Nome</th>
             <th>Telefone</th>
-            <th id="col-acoes-pacientes">Ações</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="lista-pacientes"></tbody>
@@ -55,7 +75,6 @@ label{display:block;font-size:13px;margin-bottom:4px}
     </div>
   </section>
 
-  <!-- AGENDA -->
   <section id="agenda" style="display:none;">
     <div class="card">
       <label for="agenda-medico-filtro">Médico</label>
@@ -75,7 +94,7 @@ label{display:block;font-size:13px;margin-bottom:4px}
             <th>Paciente</th>
             <th>Médico</th>
             <th>Status</th>
-            <th id="col-acoes-agenda">Ações</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody id="agenda-lista"></tbody>
@@ -83,7 +102,6 @@ label{display:block;font-size:13px;margin-bottom:4px}
     </div>
   </section>
 
-  <!-- FINANCEIRO -->
   <section id="financeiro" style="display:none;">
     <div class="card">
       <h3>Financeiro</h3>
@@ -93,7 +111,6 @@ label{display:block;font-size:13px;margin-bottom:4px}
 
 </main>
 
-<!-- MODAL PACIENTE -->
 <div id="modal-paciente">
   <div class="card">
     <h3>Novo Paciente</h3>
@@ -106,7 +123,6 @@ label{display:block;font-size:13px;margin-bottom:4px}
   </div>
 </div>
 
-<!-- MODAL AGENDA -->
 <div id="modal">
   <div class="card">
     <h3>Novo Agendamento</h3>
