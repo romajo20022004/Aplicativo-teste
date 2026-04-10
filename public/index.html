@@ -1,102 +1,116 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>ClinicaApp</title>
-  <style>
-    body { font-family: Arial; margin:0; display:flex; }
-    aside { width:200px; background:#f4f4f4; padding:10px; }
-    main { flex:1; padding:20px; }
-    .card { background:white; padding:15px; margin-bottom:15px; border-radius:8px; }
-    table { width:100%; border-collapse:collapse; }
-    th, td { padding:8px; border-bottom:1px solid #ddd; }
-    button { cursor:pointer; }
-    #modal { position:fixed; top:20%; left:40%; background:white; padding:20px; border:1px solid #ccc; display:none; }
-  </style>
+<meta charset="UTF-8">
+<title>ClinicaApp</title>
+
+<style>
+body{font-family:Arial;margin:0;display:flex}
+aside{width:200px;background:#f4f4f4;padding:10px}
+main{flex:1;padding:20px}
+.card{background:#fff;padding:15px;margin-bottom:15px;border-radius:8px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #ddd}
+button{cursor:pointer}
+</style>
+
 </head>
 
 <body>
 
 <aside>
-  <h3>ClinicaApp</h3>
-  <button onclick="mostrar('pacientes')">Pacientes</button>
-  <button onclick="mostrar('agenda')">Agenda</button>
+<h3>ClinicaApp</h3>
+
+<p id="user-info"></p>
+
+<button onclick="mostrar('pacientes')">Pacientes</button>
+<button onclick="mostrar('agenda')">Agenda</button>
+<button onclick="logout()">Sair</button>
+
 </aside>
 
 <main>
 
 <!-- PACIENTES -->
 <section id="pacientes">
-  <div class="card">
-    <button onclick="abrirModalPaciente()">+ Novo Paciente</button>
-  </div>
 
-  <div class="card">
-    <table>
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Telefone</th>
-        </tr>
-      </thead>
-      <tbody id="lista-pacientes"></tbody>
-    </table>
-  </div>
+<div class="card">
+<button onclick="abrirModalPaciente()">+ Novo Paciente</button>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Nome</th>
+<th>Telefone</th>
+</tr>
+</thead>
+<tbody id="lista-pacientes"></tbody>
+</table>
+</div>
+
 </section>
 
 <!-- AGENDA -->
 <section id="agenda" style="display:none;">
-  <div class="card">
-    <input type="date" id="agenda-data">
-    <button onclick="abrirModalAg()">+ Novo</button>
-  </div>
 
-  <div class="card">
-    <table>
-      <thead>
-        <tr>
-          <th>Hora</th>
-          <th>Paciente</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="agenda-lista"></tbody>
-    </table>
-  </div>
+<div class="card">
+<input type="date" id="agenda-data">
+<button onclick="abrirModalAg()">+ Novo</button>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Hora</th>
+<th>Paciente</th>
+<th>Status</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="agenda-lista"></tbody>
+</table>
+</div>
+
 </section>
 
 </main>
 
 <!-- MODAL PACIENTE -->
-<div id="modal-paciente">
-  <div class="card">
-    <h3>Novo Paciente</h3>
-    <input id="p-nome" placeholder="Nome"><br>
-    <input id="p-telefone" placeholder="Telefone"><br>
-    <button onclick="salvarPaciente()">Salvar</button>
-  </div>
+<div id="modal-paciente" style="display:none">
+<div class="card">
+<h3>Novo Paciente</h3>
+
+<input id="p-nome" placeholder="Nome"><br>
+<input id="p-telefone" placeholder="Telefone"><br>
+
+<button onclick="salvarPaciente()">Salvar</button>
+</div>
 </div>
 
 <!-- MODAL AGENDA -->
-<div id="modal">
-  <div class="card">
-    <h3>Novo Agendamento</h3>
+<div id="modal" style="display:none">
+<div class="card">
+<h3>Novo Agendamento</h3>
 
-    <select id="ag-paciente"></select><br>
-    <input type="date" id="ag-data"><br>
-    <input type="time" id="ag-hora"><br>
+<select id="ag-paciente"></select><br>
+<input type="date" id="ag-data"><br>
+<input type="time" id="ag-hora"><br>
 
-    <select id="ag-status">
-      <option value="agendado">Agendado</option>
-      <option value="confirmado">Confirmado</option>
-      <option value="atendido">Atendido</option>
-    </select><br>
+<select id="ag-status">
+<option value="agendado">Agendado</option>
+<option value="confirmado">Confirmado</option>
+<option value="atendido">Atendido</option>
+</select><br>
 
-    <button onclick="salvarAg()">Salvar</button>
-  </div>
+<button onclick="salvarAg()">Salvar</button>
+</div>
 </div>
 
-<script src="js/app.js"></script>
+<script src="/js/auth-guard.js"></script>
+<script src="/js/app.js"></script>
+
 </body>
 </html>
