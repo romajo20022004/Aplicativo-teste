@@ -1,16 +1,11 @@
-import { requireAuth } from '../../_lib/auth';
-
-function json(data, status=200){
-  return new Response(JSON.stringify(data), {
-    status,
-    headers:{ 'Content-Type':'application/json' }
-  });
-}
+import { requireAuth, requireRole, json } from '../../_lib/auth';
 
 export async function onRequestDelete({ params, request, env }) {
-
   const auth = await requireAuth(request, env);
-  if(!auth.ok) return json(auth, auth.status);
+  if (!auth.ok) return json(auth, auth.status);
+
+  const roleCheck = requireRole(auth, ['admin', 'secretaria']);
+  if (!roleCheck.ok) return json(roleCheck, roleCheck.status);
 
   const id = params.id;
 
@@ -19,5 +14,5 @@ export async function onRequestDelete({ params, request, env }) {
     WHERE id = ?
   `).bind(id).run();
 
-  return json({ ok:true });
+  return json({ ok: true });
 }
