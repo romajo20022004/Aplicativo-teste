@@ -1,11 +1,23 @@
 const API_P = "/api/pacientes";
 const API_A = "/api/agendamentos";
 
+// -------- TOKEN --------
+function getToken(){
+  const s = JSON.parse(localStorage.getItem('session'));
+  return s?.token;
+}
+
+function authHeader(){
+  return {
+    Authorization: 'Bearer ' + getToken()
+  };
+}
+
 // -------- AUTH --------
 function applyAuth(){
   if(window.USER){
     document.getElementById("user-info").innerText =
-      window.USER.email + " (" + window.USER.role + ")";
+      window.USER.email + " (" + window.USER.perfil + ")";
   }
 }
 
@@ -20,7 +32,11 @@ function mostrar(sec){
 
 // -------- PACIENTES --------
 async function carregarPacientes(){
-  const res = await fetch(API_P);
+
+  const res = await fetch(API_P,{
+    headers: authHeader()
+  });
+
   const json = await res.json();
 
   const tbody = document.getElementById("lista-pacientes");
@@ -52,7 +68,10 @@ async function salvarPaciente(){
 
   await fetch(API_P,{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
+    headers:{
+      "Content-Type":"application/json",
+      ...authHeader()
+    },
     body:JSON.stringify(body)
   });
 
@@ -66,7 +85,10 @@ async function carregarAgenda(){
 
   const data = document.getElementById("agenda-data").value;
 
-  const res = await fetch(`${API_A}?data=${data}`);
+  const res = await fetch(`${API_A}?data=${data}`,{
+    headers: authHeader()
+  });
+
   const json = await res.json();
 
   const tbody = document.getElementById("agenda-lista");
@@ -93,7 +115,10 @@ function abrirModalAg(){
 
 async function carregarSelectPacientes(){
 
-  const res = await fetch(API_P);
+  const res = await fetch(API_P,{
+    headers: authHeader()
+  });
+
   const json = await res.json();
 
   const select = document.getElementById("ag-paciente");
@@ -118,7 +143,10 @@ async function salvarAg(){
 
   await fetch(API_A,{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
+    headers:{
+      "Content-Type":"application/json",
+      ...authHeader()
+    },
     body:JSON.stringify(body)
   });
 
@@ -128,7 +156,10 @@ async function salvarAg(){
 }
 
 async function delAg(id){
-  await fetch(`${API_A}/${id}`,{method:"DELETE"});
+  await fetch(`${API_A}/${id}`,{
+    method:"DELETE",
+    headers: authHeader()
+  });
   carregarAgenda();
 }
 
