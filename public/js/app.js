@@ -2,7 +2,6 @@ const API_P = "/api/pacientes";
 const API_A = "/api/agendamentos";
 const API_M = "/api/medicos";
 
-// -------- TOKEN --------
 function getToken() {
   const s = JSON.parse(localStorage.getItem('session') || 'null');
   return s?.token || '';
@@ -14,7 +13,6 @@ function authHeader() {
   };
 }
 
-// -------- AUTH / PERFIL --------
 function getPerfil() {
   return window.USER?.perfil || '';
 }
@@ -73,7 +71,6 @@ function applyAuth() {
   }
 }
 
-// -------- NAV --------
 function mostrar(sec) {
   document.getElementById("pacientes").style.display =
     sec === "pacientes" ? "block" : "none";
@@ -85,7 +82,6 @@ function mostrar(sec) {
     sec === "financeiro" ? "block" : "none";
 }
 
-// -------- PACIENTES --------
 async function carregarPacientes() {
   const res = await fetch(API_P, {
     headers: authHeader()
@@ -176,7 +172,8 @@ async function salvarPaciente() {
   document.getElementById("p-nome").value = "";
   document.getElementById("p-telefone").value = "";
 
-  carregarPacientes();
+  await carregarPacientes();
+  await carregarPacientesNosSelects();
 }
 
 async function delPaciente(id) {
@@ -185,8 +182,7 @@ async function delPaciente(id) {
     return;
   }
 
-  const ok = confirm("Excluir paciente?");
-  if (!ok) return;
+  if (!confirm("Excluir paciente?")) return;
 
   const res = await fetch(`/api/pacientes/${id}`, {
     method: "DELETE",
@@ -200,11 +196,11 @@ async function delPaciente(id) {
     return;
   }
 
-  carregarPacientes();
+  await carregarPacientes();
+  await carregarPacientesNosSelects();
 }
 
-// -------- MÉDICOS --------
-async function carregarMedicosSelects() {
+async function carregarMedicosNosSelects() {
   const res = await fetch(API_M, {
     headers: authHeader()
   });
@@ -220,19 +216,37 @@ async function carregarMedicosSelects() {
   if (!json.ok || !json.data) return;
 
   json.data.forEach(m => {
-    const optFiltro = document.createElement("option");
-    optFiltro.value = m.id;
-    optFiltro.textContent = m.nome;
-    filtro.appendChild(optFiltro);
+    const opt1 = document.createElement("option");
+    opt1.value = m.id;
+    opt1.textContent = m.nome;
+    filtro.appendChild(opt1);
 
-    const optModal = document.createElement("option");
-    optModal.value = m.id;
-    optModal.textContent = m.nome;
-    selectModal.appendChild(optModal);
+    const opt2 = document.createElement("option");
+    opt2.value = m.id;
+    opt2.textContent = m.nome;
+    selectModal.appendChild(opt2);
   });
 }
 
-// -------- AGENDA --------
+async function carregarPacientesNosSelects() {
+  const res = await fetch(API_P, {
+    headers: authHeader()
+  });
+
+  const json = await res.json();
+  const select = document.getElementById("ag-paciente");
+  select.innerHTML = `<option value="">Selecione um paciente</option>`;
+
+  if (!json.ok || !json.data) return;
+
+  json.data.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.nome;
+    select.appendChild(opt);
+  });
+}
+
 async function carregarAgenda() {
   const data = document.getElementById("agenda-data").value;
   const medicoId = document.getElementById("agenda-medico-filtro").value;
@@ -268,10 +282,10 @@ async function carregarAgenda() {
       : `<span style="color:#888">Sem permissão</span>`;
 
     tr.innerHTML = `
-      <td>${a.hora}</td>
-      <td>${a.paciente_nome}</td>
+      <td>${a.hora || ""}</td>
+      <td>${a.paciente_nome || ""}</td>
       <td>${a.medico_nome || ""}</td>
-      <td>${a.status}</td>
+      <td>${a.status || ""}</td>
       <td>${actionHtml}</td>
     `;
 
@@ -279,38 +293,29 @@ async function carregarAgenda() {
   });
 }
 
-function abrirModalAg() {
+async function abrirModalAg() {
   if (!canCreateAgendamento()) {
     alert("Seu perfil não pode criar agendamentos.");
     return;
   }
 
-  document.getElementById("modal").style.display = "block";
-  carregarSelectPacientes();
+  await carregarPacientesNosSelects();
+  await carregarMedicosNosSelects();
+
   document.getElementById("ag-data").value = document.getElementById("agenda-data").value;
+  document.getElementById("ag-hora").value = "";
+  document.getElementById("ag-status").value = "agendado";
+
+  const filtroMedico = document.getElementById("agenda-medico-filtro").value;
+  if (filtroMedico) {
+    document.getElementById("ag-medico").value = filtroMedico;
+  }
+
+  document.getElementById("modal").style.display = "block";
 }
 
 function fecharModalAg() {
   document.getElementById("modal").style.display = "none";
-}
-
-async function carregarSelectPacientes() {
-  const res = await fetch(API_P, {
-    headers: authHeader()
-  });
-
-  const json = await res.json();
-  const select = document.getElementById("ag-paciente");
-  select.innerHTML = `<option value="">Selecione um paciente</option>`;
-
-  if (!json.ok || !json.data) return;
-
-  json.data.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-    opt.textContent = p.nome;
-    select.appendChild(opt);
-  });
 }
 
 async function salvarAg() {
@@ -349,7 +354,7 @@ async function salvarAg() {
   }
 
   document.getElementById("modal").style.display = "none";
-  carregarAgenda();
+  await carregarAgenda();
 }
 
 async function delAg(id) {
@@ -358,8 +363,7 @@ async function delAg(id) {
     return;
   }
 
-  const ok = confirm("Excluir agendamento?");
-  if (!ok) return;
+  if (!confirm("Excluir agendamento?")) return;
 
   const res = await fetch(`${API_A}/${id}`, {
     method: "DELETE",
@@ -373,10 +377,9 @@ async function delAg(id) {
     return;
   }
 
-  carregarAgenda();
+  await carregarAgenda();
 }
 
-// -------- INIT --------
 document.getElementById("agenda-data").value =
   new Date().toISOString().split("T")[0];
 
@@ -386,7 +389,8 @@ document.getElementById("agenda-medico-filtro").addEventListener("change", carre
 applyAuth();
 
 (async function init() {
-  await carregarMedicosSelects();
+  await carregarMedicosNosSelects();
   await carregarPacientes();
+  await carregarPacientesNosSelects();
   await carregarAgenda();
 })();
