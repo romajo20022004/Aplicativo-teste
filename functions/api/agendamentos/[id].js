@@ -7,7 +7,11 @@ export async function onRequestDelete({ params, request, env }) {
   const roleCheck = requireRole(auth, ['admin', 'secretaria']);
   if (!roleCheck.ok) return json(roleCheck, roleCheck.status);
 
-  const id = params.id;
+  const id = Number(params.id || 0);
+
+  if (!id) {
+    return json({ ok: false, error: 'ID inválido' }, 400);
+  }
 
   await env.DB.prepare(`
     DELETE FROM agendamentos
