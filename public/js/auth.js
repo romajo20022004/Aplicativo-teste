@@ -1,20 +1,44 @@
-function login(){
-  const email = document.getElementById('email').value;
+async function login() {
+  const email = document.getElementById('email').value.trim();
   const senha = document.getElementById('senha').value;
+  const errorEl = document.getElementById('error');
+  const btn = document.getElementById('btn-login');
 
-  const users = [
-    {email:'admin@clinica.com',senha:'123456',role:'admin'},
-    {email:'medico@clinica.com',senha:'123456',role:'medico'},
-    {email:'secretaria@clinica.com',senha:'123456',role:'secretaria'}
-  ];
+  errorEl.innerText = '';
 
-  const user = users.find(u=>u.email===email && u.senha===senha);
-
-  if(!user){
-    document.getElementById('error').innerText = 'Login inválido';
+  if (!email || !senha) {
+    errorEl.innerText = 'Preencha e-mail e senha';
     return;
   }
 
-  localStorage.setItem('session',JSON.stringify(user));
-  window.location.href='/';
+  btn.disabled = true;
+  btn.innerText = 'Entrando...';
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha })
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || !json.ok) {
+      errorEl.innerText = json.error || 'Falha no login';
+      btn.disabled = false;
+      btn.innerText = 'Entrar';
+      return;
+    }
+
+    localStorage.setItem('session', JSON.stringify({
+      token: json.token,
+      user: json.user
+    }));
+
+    window.location.href = '/';
+  } catch (e) {
+    errorEl.innerText = 'Erro ao conectar com o servidor';
+    btn.disabled = false;
+    btn.innerText = 'Entrar';
+  }
 }
