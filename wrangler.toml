@@ -5,4 +5,4 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "clinica-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "41c46e78-afd3-41d5-ae27-bfc9b107523b"
