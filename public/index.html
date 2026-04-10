@@ -10,7 +10,7 @@ aside{width:220px;background:#f4f4f4;padding:12px}
 main{flex:1;padding:20px}
 .card{background:#fff;padding:15px;margin-bottom:15px;border-radius:8px}
 table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}
+th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}
 button{cursor:pointer;margin-right:6px}
 #modal-paciente,#modal{
   display:none;
@@ -26,17 +26,29 @@ button{cursor:pointer;margin-right:6px}
   min-width:380px;
   z-index:1000
 }
-input,select{
+input,select,textarea{
   padding:8px;
   margin-bottom:10px;
   width:100%;
   box-sizing:border-box
 }
-label{
-  display:block;
-  font-size:13px;
-  margin-bottom:4px
+label{display:block;font-size:13px;margin-bottom:4px}
+textarea{min-height:90px;resize:vertical}
+.prontuario-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
 }
+.prontuario-grid .card{margin-bottom:0}
+.prontuario-wide{grid-column:1 / -1}
+.evolucao-item{
+  border:1px solid #ddd;
+  border-radius:8px;
+  padding:10px;
+  margin-bottom:10px;
+  background:#fafafa
+}
+.small{font-size:12px;color:#666}
 </style>
 
 </head>
@@ -50,6 +62,7 @@ label{
 
   <button onclick="mostrar('pacientes')">Pacientes</button>
   <button onclick="mostrar('agenda')">Agenda</button>
+  <button onclick="mostrar('prontuario')">Prontuário</button>
   <button id="nav-financeiro" onclick="mostrar('financeiro')">Financeiro</button>
   <button onclick="logout()">Sair</button>
 </aside>
@@ -99,6 +112,65 @@ label{
         </thead>
         <tbody id="agenda-lista"></tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="prontuario" style="display:none;">
+    <div class="card">
+      <h3 id="prontuario-titulo">Prontuário</h3>
+      <p id="prontuario-subtitulo" class="small">Selecione um paciente na lista para abrir o prontuário.</p>
+    </div>
+
+    <div class="prontuario-grid">
+      <div class="card">
+        <label>Queixa principal</label>
+        <textarea id="pr-queixa"></textarea>
+      </div>
+
+      <div class="card">
+        <label>CID</label>
+        <textarea id="pr-cid"></textarea>
+      </div>
+
+      <div class="card prontuario-wide">
+        <label>HDA</label>
+        <textarea id="pr-hda"></textarea>
+      </div>
+
+      <div class="card prontuario-wide">
+        <label>HMP</label>
+        <textarea id="pr-hmp"></textarea>
+      </div>
+
+      <div class="card prontuario-wide">
+        <label>Exame físico</label>
+        <textarea id="pr-exame-fisico"></textarea>
+      </div>
+
+      <div class="card prontuario-wide">
+        <label>Exames</label>
+        <textarea id="pr-exames"></textarea>
+      </div>
+
+      <div class="card prontuario-wide">
+        <label>Conduta</label>
+        <textarea id="pr-conduta"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <button id="btn-salvar-prontuario" onclick="salvarProntuario()">Salvar prontuário</button>
+    </div>
+
+    <div class="card">
+      <h3>Evolução</h3>
+      <textarea id="pr-evolucao-texto" placeholder="Escreva a evolução clínica..."></textarea>
+      <button id="btn-salvar-evolucao" onclick="salvarEvolucao()">Adicionar evolução</button>
+    </div>
+
+    <div class="card">
+      <h3>Histórico de evoluções</h3>
+      <div id="lista-evolucoes"></div>
     </div>
   </section>
 
