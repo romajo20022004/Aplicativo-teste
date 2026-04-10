@@ -1,61 +1,78 @@
 const API_P = "/api/pacientes";
 const API_A = "/api/agendamentos";
 
+// -------- AUTH --------
+function applyAuth(){
+  if(window.USER){
+    document.getElementById("user-info").innerText =
+      window.USER.email + " (" + window.USER.role + ")";
+  }
+}
+
 // -------- NAV --------
-function mostrar(sec) {
-  document.getElementById("pacientes").style.display = sec === "pacientes" ? "block" : "none";
-  document.getElementById("agenda").style.display = sec === "agenda" ? "block" : "none";
+function mostrar(sec){
+  document.getElementById("pacientes").style.display =
+    sec==="pacientes"?"block":"none";
+
+  document.getElementById("agenda").style.display =
+    sec==="agenda"?"block":"none";
 }
 
 // -------- PACIENTES --------
-async function carregarPacientes() {
+async function carregarPacientes(){
   const res = await fetch(API_P);
   const json = await res.json();
 
   const tbody = document.getElementById("lista-pacientes");
   tbody.innerHTML = "";
 
-  json.data.forEach(p => {
+  json.data.forEach(p=>{
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${p.nome}</td>
-      <td>${p.telefone || ""}</td>
+      <td>${p.telefone||""}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-function abrirModalPaciente() {
-  document.getElementById("modal-paciente").style.display = "block";
+function abrirModalPaciente(){
+  document.getElementById("modal-paciente").style.display="block";
 }
 
-async function salvarPaciente() {
+async function salvarPaciente(){
+
   const body = {
     nome: document.getElementById("p-nome").value,
+    nascimento:"2000-01-01",
+    cpf: Math.random().toString().slice(2,13),
+    sexo:"M",
     telefone: document.getElementById("p-telefone").value
   };
 
-  await fetch(API_P, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
+  await fetch(API_P,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify(body)
   });
 
-  document.getElementById("modal-paciente").style.display = "none";
+  document.getElementById("modal-paciente").style.display="none";
+
   carregarPacientes();
 }
 
 // -------- AGENDA --------
-async function carregarAgenda() {
+async function carregarAgenda(){
+
   const data = document.getElementById("agenda-data").value;
 
   const res = await fetch(`${API_A}?data=${data}`);
   const json = await res.json();
 
   const tbody = document.getElementById("agenda-lista");
-  tbody.innerHTML = "";
+  tbody.innerHTML="";
 
-  json.data.forEach(a => {
+  json.data.forEach(a=>{
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
@@ -69,19 +86,20 @@ async function carregarAgenda() {
   });
 }
 
-function abrirModalAg() {
-  document.getElementById("modal").style.display = "block";
+function abrirModalAg(){
+  document.getElementById("modal").style.display="block";
   carregarSelectPacientes();
 }
 
-async function carregarSelectPacientes() {
+async function carregarSelectPacientes(){
+
   const res = await fetch(API_P);
   const json = await res.json();
 
   const select = document.getElementById("ag-paciente");
-  select.innerHTML = "";
+  select.innerHTML="";
 
-  json.data.forEach(p => {
+  json.data.forEach(p=>{
     const opt = document.createElement("option");
     opt.value = p.id;
     opt.textContent = p.nome;
@@ -89,7 +107,8 @@ async function carregarSelectPacientes() {
   });
 }
 
-async function salvarAg() {
+async function salvarAg(){
+
   const body = {
     paciente_id: document.getElementById("ag-paciente").value,
     data: document.getElementById("ag-data").value,
@@ -97,18 +116,19 @@ async function salvarAg() {
     status: document.getElementById("ag-status").value
   };
 
-  await fetch(API_A, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(body)
+  await fetch(API_A,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify(body)
   });
 
-  document.getElementById("modal").style.display = "none";
+  document.getElementById("modal").style.display="none";
+
   carregarAgenda();
 }
 
-async function delAg(id) {
-  await fetch(`${API_A}/${id}`, { method:"DELETE" });
+async function delAg(id){
+  await fetch(`${API_A}/${id}`,{method:"DELETE"});
   carregarAgenda();
 }
 
@@ -116,5 +136,6 @@ async function delAg(id) {
 document.getElementById("agenda-data").value =
   new Date().toISOString().split("T")[0];
 
+applyAuth();
 carregarPacientes();
 carregarAgenda();
