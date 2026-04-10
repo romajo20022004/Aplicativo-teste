@@ -1,4 +1,5 @@
 (function(){
+
   const session = JSON.parse(localStorage.getItem('session'));
 
   if(!session){
@@ -7,6 +8,7 @@
   }
 
   window.USER = session;
+
 })();
 
 function logout(){
