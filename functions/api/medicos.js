@@ -8,7 +8,7 @@ export async function onRequestGet({ request, env }) {
     SELECT id, nome, email, crm, especialidade, status
     FROM medicos
     WHERE status = 'ativo'
-    ORDER BY nome
+    ORDER BY nome ASC
   `).all();
 
   return json({ ok: true, data: rows.results || [] });
