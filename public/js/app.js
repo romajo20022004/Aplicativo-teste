@@ -1,5 +1,6 @@
 const API_P = "/api/pacientes";
 const API_A = "/api/agendamentos";
+const API_M = "/api/medicos";
 
 // -------- TOKEN --------
 function getToken() {
@@ -202,11 +203,46 @@ async function delPaciente(id) {
   carregarPacientes();
 }
 
+// -------- MÉDICOS --------
+async function carregarMedicosSelects() {
+  const res = await fetch(API_M, {
+    headers: authHeader()
+  });
+
+  const json = await res.json();
+
+  const filtro = document.getElementById("agenda-medico-filtro");
+  const selectModal = document.getElementById("ag-medico");
+
+  filtro.innerHTML = `<option value="">Todos os médicos</option>`;
+  selectModal.innerHTML = `<option value="">Selecione um médico</option>`;
+
+  if (!json.ok || !json.data) return;
+
+  json.data.forEach(m => {
+    const optFiltro = document.createElement("option");
+    optFiltro.value = m.id;
+    optFiltro.textContent = m.nome;
+    filtro.appendChild(optFiltro);
+
+    const optModal = document.createElement("option");
+    optModal.value = m.id;
+    optModal.textContent = m.nome;
+    selectModal.appendChild(optModal);
+  });
+}
+
 // -------- AGENDA --------
 async function carregarAgenda() {
   const data = document.getElementById("agenda-data").value;
+  const medicoId = document.getElementById("agenda-medico-filtro").value;
 
-  const res = await fetch(`${API_A}?data=${data}`, {
+  let url = `${API_A}?data=${encodeURIComponent(data)}`;
+  if (medicoId) {
+    url += `&medico_id=${encodeURIComponent(medicoId)}`;
+  }
+
+  const res = await fetch(url, {
     headers: authHeader()
   });
 
@@ -215,12 +251,12 @@ async function carregarAgenda() {
   tbody.innerHTML = "";
 
   if (!json.ok) {
-    tbody.innerHTML = `<tr><td colspan="4">Erro: ${json.error || 'Falha ao carregar'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5">Erro: ${json.error || 'Falha ao carregar'}</td></tr>`;
     return;
   }
 
   if (!json.data || !json.data.length) {
-    tbody.innerHTML = `<tr><td colspan="4">Nenhum agendamento encontrado</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5">Nenhum agendamento encontrado</td></tr>`;
     return;
   }
 
@@ -234,6 +270,7 @@ async function carregarAgenda() {
     tr.innerHTML = `
       <td>${a.hora}</td>
       <td>${a.paciente_nome}</td>
+      <td>${a.medico_nome || ""}</td>
       <td>${a.status}</td>
       <td>${actionHtml}</td>
     `;
@@ -264,7 +301,7 @@ async function carregarSelectPacientes() {
 
   const json = await res.json();
   const select = document.getElementById("ag-paciente");
-  select.innerHTML = "";
+  select.innerHTML = `<option value="">Selecione um paciente</option>`;
 
   if (!json.ok || !json.data) return;
 
@@ -284,13 +321,14 @@ async function salvarAg() {
 
   const body = {
     paciente_id: document.getElementById("ag-paciente").value,
+    medico_id: document.getElementById("ag-medico").value,
     data: document.getElementById("ag-data").value,
     hora: document.getElementById("ag-hora").value,
     status: document.getElementById("ag-status").value
   };
 
-  if (!body.paciente_id || !body.data || !body.hora) {
-    alert("Preencha paciente, data e hora.");
+  if (!body.paciente_id || !body.medico_id || !body.data || !body.hora) {
+    alert("Preencha paciente, médico, data e hora.");
     return;
   }
 
@@ -342,6 +380,13 @@ async function delAg(id) {
 document.getElementById("agenda-data").value =
   new Date().toISOString().split("T")[0];
 
+document.getElementById("agenda-data").addEventListener("change", carregarAgenda);
+document.getElementById("agenda-medico-filtro").addEventListener("change", carregarAgenda);
+
 applyAuth();
-carregarPacientes();
-carregarAgenda();
+
+(async function init() {
+  await carregarMedicosSelects();
+  await carregarPacientes();
+  await carregarAgenda();
+})();
