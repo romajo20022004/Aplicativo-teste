@@ -418,6 +418,50 @@
   </div>
 </div>
 
+<!-- ══ Modal Usuário ══ -->
+<div class="modal-overlay" id="modal-usr-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-usr-title">Novo Usuário</span>
+      <button class="btn btn-sm" id="btn-cancel-usr">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="fu-form" onsubmit="return false">
+        <div class="form-section">
+          <div class="form-section-title">Dados do Usuário</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group span2"><label>Nome completo <span class="req">*</span></label><input type="text" id="fu-nome" placeholder="Nome do usuário" /></div>
+            <div class="form-group span2"><label>E-mail <span class="req">*</span></label><input type="email" id="fu-email" placeholder="email@clinica.com" /></div>
+            <div class="form-group span2"><label id="fu-senha-label">Senha <span class="req">*</span></label><input type="password" id="fu-senha" placeholder="••••••••" /></div>
+            <div class="form-group"><label>Perfil <span class="req">*</span></label>
+              <select class="form-select" id="fu-perfil">
+                <option value="admin">Admin</option>
+                <option value="medico">Médico</option>
+                <option value="secretaria">Secretaria</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Status</label>
+              <select class="form-select" id="fu-ativo">
+                <option value="1">Ativo</option>
+                <option value="0">Inativo</option>
+              </select>
+            </div>
+            <div class="form-group span2"><label>Médico vinculado (se perfil médico)</label>
+              <select class="form-select" id="fu-medico">
+                <option value="">Nenhum</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModalUsuario()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-usr">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script src="/js/app.v4.js"></script>
 </body>
 </html>
