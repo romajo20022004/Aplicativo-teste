@@ -396,6 +396,7 @@ async function editAgendamento(id) {
     state.pacientes.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
   $('#fa-medico').innerHTML = '<option value="">Selecione o médico...</option>' +
     state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome} — ${m.especialidade}</option>`).join('');
+  state._agendamentoStatusAnterior = a.status_agenda;
   $('#fa-paciente').value = a.paciente_id;
   $('#fa-medico').value   = a.medico_id;
   $('#fa-data').value     = a.data;
@@ -424,10 +425,38 @@ async function saveAgendamento() {
   };
   if(!data.paciente_id||!data.medico_id||!$('#fa-data').value) { toast('Paciente, médico e data são obrigatórios','error'); return; }
   const btn=$('#btn-save-ag'); btn.disabled=true; btn.innerHTML='<div class="spinner"></div>';
+
+  // Verificar se era realizado antes (para não duplicar lançamento)
+  const eraRealizado = state.editingId ? (state._agendamentoStatusAnterior === 'realizado') : false;
+  const ficouRealizado = data.status_agenda === 'realizado';
+
   const res = state.editingId ? await API.put('/api/agendamentos/'+state.editingId,data) : await API.post('/api/agendamentos',data);
   btn.disabled=false; btn.textContent='Salvar';
   if(!res.ok) { toast(res.error||'Erro ao salvar','error'); return; }
-  toast(state.editingId?'Agendamento atualizado!':'Agendamento criado!');
+
+  // Criar lançamento automático se ficou realizado e não era antes
+  if(ficouRealizado && !eraRealizado) {
+    const pac = state.pacientes.find(p=>p.id===data.paciente_id);
+    const med = state.medicos.find(m=>m.id===data.medico_id);
+    const agId = state.editingId || res.id;
+    await API.post('/api/financeiro', {
+      tipo: 'receita',
+      categoria: pac?.convenio || 'Particular',
+      descricao: `Consulta — ${pac?.nome || 'Paciente'} (${data.tipo})`,
+      valor: data.valor,
+      data: data.data,
+      medico_id: data.medico_id,
+      agendamento_id: agId,
+      status: data.status_pgto === 'pago' ? 'confirmado' : 'pendente',
+      forma_pgto: data.status_pgto === 'pago' ? 'dinheiro' : 'pendente',
+      observacoes: ''
+    });
+    toast('Consulta realizada! Lançamento criado no financeiro.');
+  } else {
+    toast(state.editingId?'Agendamento atualizado!':'Agendamento criado!');
+  }
+
+  state._agendamentoStatusAnterior = null;
   closeModalAgendamento(); loadAgenda();
 }
 
