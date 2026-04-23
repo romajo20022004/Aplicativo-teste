@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicaApp</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<!-- ══ Modal Paciente ══ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-title">Novo Paciente</span>
+      <button class="btn btn-sm" id="btn-cancel">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="pac-form" onsubmit="return false">
+        <div class="form-section">
+          <div class="form-section-title">Dados Pessoais</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group span2"><label>Nome completo <span class="req">*</span></label><input type="text" id="f-nome" placeholder="Nome do paciente" autocomplete="off" /><span class="field-error" id="err-nome"></span></div>
+            <div class="form-group"><label>Data de nascimento <span class="req">*</span></label><input type="date" id="f-nascimento" /></div>
+            <div class="form-group"><label>CPF <span class="req">*</span></label><input type="text" id="f-cpf" placeholder="000.000.000-00" maxlength="14" /></div>
+            <div class="form-group"><label>Sexo <span class="req">*</span></label><select class="form-select" id="f-sexo"><option value="">Selecione...</option><option value="F">Feminino</option><option value="M">Masculino</option><option value="O">Outro</option></select></div>
+            <div class="form-group"><label>Telefone <span class="req">*</span></label><input type="tel" id="f-telefone" placeholder="(11) 99999-9999" maxlength="15" /></div>
+            <div class="form-group span2"><label>E-mail</label><input type="email" id="f-email" placeholder="email@exemplo.com" /></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title">Endereço</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>CEP</label><input type="text" id="f-cep" placeholder="00000-000" maxlength="9" /></div>
+            <div class="form-group"><label>Estado</label><select class="form-select" id="f-estado"><option value="">UF</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option selected>SP</option><option>SE</option><option>TO</option></select></div>
+            <div class="form-group span2"><label>Logradouro</label><input type="text" id="f-logradouro" placeholder="Rua, Avenida..." /></div>
+            <div class="form-group"><label>Número</label><input type="text" id="f-numero" /></div>
+            <div class="form-group"><label>Complemento</label><input type="text" id="f-complemento" /></div>
+            <div class="form-group"><label>Bairro</label><input type="text" id="f-bairro" /></div>
+            <div class="form-group"><label>Cidade</label><input type="text" id="f-cidade" /></div>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title">Convênio &amp; Financeiro</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>Convênio <span class="req">*</span></label><select class="form-select" id="f-convenio"><option>Particular</option><option>Unimed</option><option>Bradesco Saúde</option><option>SulAmérica</option><option>Amil</option><option>Porto Seguro</option><option>Hapvida</option><option>NotreDame Intermédica</option><option>Outros</option></select></div>
+            <div class="form-group"><label>Nº da Carteirinha</label><input type="text" id="f-num-carteira" /></div>
+            <div class="form-group"><label>Valor da consulta (R$)</label><input type="number" id="f-valor" placeholder="0,00" step="0.01" min="0" /></div>
+            <div class="form-group"><label>Status</label><select class="form-select" id="f-status"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+            <div class="form-group span2"><label>Observações</label><textarea id="f-obs" placeholder="Anotações, alergias..."></textarea></div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save">Salvar Paciente</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal Médico ══ -->
+<div class="modal-overlay" id="modal-med-overlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-med-title">Novo Médico</span>
+      <button class="btn btn-sm" id="btn-cancel-med">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="med-form" onsubmit="return false">
+        <div class="form-section">
+          <div class="form-section-title">Dados do Médico</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group span2"><label>Nome completo <span class="req">*</span></label><input type="text" id="fm-nome" placeholder="Dr(a). Nome Sobrenome" /></div>
+            <div class="form-group"><label>CRM <span class="req">*</span></label><input type="text" id="fm-crm" placeholder="CRM-SP 000000" /></div>
+            <div class="form-group"><label>Especialidade <span class="req">*</span></label><input type="text" id="fm-especialidade" placeholder="Clínica Geral" /></div>
+            <div class="form-group"><label>Telefone</label><input type="tel" id="fm-telefone" placeholder="(11) 99999-9999" /></div>
+            <div class="form-group"><label>E-mail</label><input type="email" id="fm-email" placeholder="medico@clinica.com" /></div>
+            <div class="form-group"><label>Cor na agenda</label><input type="color" id="fm-cor" value="#185FA5" style="height:38px;padding:2px 4px" /></div>
+            <div class="form-group"><label>Status</label><select class="form-select" id="fm-status"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModalMedico()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-med">Salvar Médico</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal Agendamento ══ -->
+<div class="modal-overlay" id="modal-ag-overlay">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-ag-title">Novo Agendamento</span>
+      <button class="btn btn-sm" id="btn-cancel-ag">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="ag-form" onsubmit="return false">
+        <div class="form-section">
+          <div class="form-section-title">Agendamento</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group span2"><label>Paciente <span class="req">*</span></label><select class="form-select" id="fa-paciente" onchange="onPacienteSelect(this.value)"><option value="">Selecione...</option></select></div>
+            <div class="form-group span2"><label>Médico <span class="req">*</span></label><select class="form-select medico-select" id="fa-medico"><option value="">Selecione...</option></select></div>
+            <div class="form-group"><label>Data <span class="req">*</span></label><input type="date" id="fa-data" /></div>
+            <div class="form-group"><label>Horário</label><input type="time" id="fa-hora" value="08:00" step="1800" /></div>
+            <div class="form-group"><label>Duração (min)</label><select class="form-select" id="fa-duracao"><option value="20">20 min</option><option value="30" selected>30 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option></select></div>
+            <div class="form-group"><label>Tipo</label><select class="form-select" id="fa-tipo"><option>Consulta</option><option>Retorno</option><option>Exame</option><option>Procedimento</option><option>Teleconsulta</option></select></div>
+            <div class="form-group"><label>Valor (R$)</label><input type="number" id="fa-valor" placeholder="0,00" step="0.01" min="0" /></div>
+            <div class="form-group"><label>Status pagamento</label><select class="form-select" id="fa-pgto"><option value="pendente">Pendente</option><option value="pago">Pago</option><option value="convênio">Convênio</option><option value="isento">Isento</option></select></div>
+            <div class="form-group span2"><label>Status consulta</label><select class="form-select" id="fa-status"><option value="agendado">Agendado</option><option value="confirmado">Confirmado</option><option value="realizado">Realizado</option><option value="cancelado">Cancelado</option><option value="faltou">Faltou</option></select></div>
+            <div class="form-group span2"><label>Observações</label><textarea id="fa-obs" placeholder="Motivo, preparo, observações..."></textarea></div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModalAgendamento()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-ag">Salvar Agendamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ App ══ -->
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-2px;margin-right:4px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        ClinicaApp
+        <small>Sistema de Consultório</small>
+      </div>
+    </div>
+    <div class="role-area">
+      <div class="role-label">Perfil</div>
+      <select class="role-select" id="role-select">
+        <option value="admin">Admin</option>
+        <option value="medico">Médico</option>
+        <option value="secretaria">Secretaria</option>
+      </select>
+    </div>
+    <nav class="nav">
+      <button class="nav-item" data-page="dashboard" id="nav-dashboard">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" data-page="pacientes" id="nav-pacientes">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Pacientes</span>
+      </button>
+      <button class="nav-item" data-page="medicos" id="nav-medicos">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Médicos</span>
+      </button>
+      <button class="nav-item" data-page="agenda" id="nav-agenda">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Agenda</span>
+      </button>
+      <button class="nav-item" data-page="financeiro" id="nav-financeiro">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Financeiro</span>
+      </button>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-title" id="topbar-title">Pacientes</span>
+      </div>
+      <div class="flex-row">
+        <input class="search-input" id="search-input" placeholder="Buscar paciente..." />
+        <select class="filter-sel" id="filter-status" style="display:none">
+          <option value="">Todos os status</option>
+          <option value="ativo">Ativos</option>
+          <option value="inativo">Inativos</option>
+        </select>
+        <button class="btn btn-primary" id="btn-add">+ Novo Paciente</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Dashboard -->
+      <div class="section" id="sec-dashboard">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total de pacientes</div><div class="metric-val" style="color:var(--blue)" id="m-total">—</div></div>
+          <div class="metric"><div class="metric-label">Consultas hoje</div><div class="metric-val" style="color:var(--teal-mid)">—</div></div>
+          <div class="metric"><div class="metric-label">Receita do mês</div><div class="metric-val" style="color:var(--amber-mid)">—</div></div>
+          <div class="metric"><div class="metric-label">Pendências</div><div class="metric-val" style="color:var(--coral-mid)">—</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Acesso rápido</span></div>
+          <div style="padding:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+            <button class="btn" style="padding:18px;flex-direction:column;gap:8px;font-size:13px" onclick="navTo('pacientes')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Pacientes</button>
+            <button class="btn" style="padding:18px;flex-direction:column;gap:8px;font-size:13px" onclick="navTo('medicos')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Médicos</button>
+            <button class="btn" style="padding:18px;flex-direction:column;gap:8px;font-size:13px" onclick="navTo('agenda')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Agenda</button>
+            <button class="btn" style="padding:18px;flex-direction:column;gap:8px;font-size:13px" onclick="navTo('financeiro')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--coral-mid)" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Financeiro</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pacientes -->
+      <div class="section" id="sec-pacientes">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total cadastrados</div><div class="metric-val" style="color:var(--blue)" id="m-total">—</div></div>
+          <div class="metric"><div class="metric-label">Ativos</div><div class="metric-val" style="color:var(--teal-mid)" id="m-ativos">—</div></div>
+          <div class="metric"><div class="metric-label">Inativos</div><div class="metric-val" style="color:var(--coral-mid)" id="m-inativos">—</div></div>
+          <div class="metric"><div class="metric-label">Ticket médio</div><div class="metric-val" style="color:var(--amber-mid)" id="m-ticket">—</div></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <select class="filter-sel" id="filter-status"><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Lista de Pacientes</span></div>
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Paciente</th><th>Nascimento</th><th>Contato</th><th>Convênio</th><th>Valor Consulta</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="pac-tbody"><tr><td colspan="7" class="tbl-empty">Carregando...</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Médicos -->
+      <div class="section" id="sec-medicos">
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Médicos Cadastrados</span></div>
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Médico</th><th>Especialidade</th><th>Telefone</th><th>E-mail</th><th>Cor</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="med-tbody"><tr><td colspan="7" class="tbl-empty">Carregando...</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agenda -->
+      <div class="section" id="sec-agenda">
+        <div class="agenda-nav">
+          <button class="btn" id="btn-agenda-prev">← Anterior</button>
+          <div class="agenda-date-wrap">
+            <input type="date" id="agenda-date-input" class="agenda-date-inp" />
+            <span id="agenda-date-label" style="font-size:13px;font-weight:500"></span>
+          </div>
+          <button class="btn" id="btn-agenda-hoje">Hoje</button>
+          <button class="btn" id="btn-agenda-next">Próximo →</button>
+        </div>
+        <div id="agenda-cols" class="agenda-cols"></div>
+      </div>
+
+      <!-- Financeiro -->
+      <div class="section" id="sec-financeiro">
+        <div class="coming-soon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <p style="font-size:15px;font-weight:500">Módulo Financeiro</p>
+          <p style="font-size:13px;color:var(--sub)">Em desenvolvimento — usará os agendamentos realizados</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ Modal Lançamento ══ -->
+<div class="modal-overlay" id="modal-lanc-overlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-lanc-title">Novo Lançamento</span>
+      <button class="btn btn-sm" id="btn-cancel-lanc">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="fl-form" onsubmit="return false">
+        <div class="form-section">
+          <div class="form-section-title">Lançamento</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>Tipo <span class="req">*</span></label>
+              <select class="form-select" id="fl-tipo">
+                <option value="receita">Receita</option>
+                <option value="despesa">Despesa</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Data <span class="req">*</span></label>
+              <input type="date" id="fl-data" />
+            </div>
+            <div class="form-group span2"><label>Descrição <span class="req">*</span></label>
+              <input type="text" id="fl-descricao" placeholder="Ex: Consulta Dr. Silva, Aluguel, Material..." />
+            </div>
+            <div class="form-group"><label>Categoria</label>
+              <input type="text" id="fl-categoria" placeholder="Consulta, Aluguel, Material..." />
+            </div>
+            <div class="form-group"><label>Valor (R$) <span class="req">*</span></label>
+              <input type="number" id="fl-valor" placeholder="0,00" step="0.01" min="0" />
+            </div>
+            <div class="form-group"><label>Médico</label>
+              <select class="form-select" id="fl-medico">
+                <option value="">Geral (sem médico)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Forma de pagamento</label>
+              <select class="form-select" id="fl-forma">
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cartao_credito">Cartão de crédito</option>
+                <option value="cartao_debito">Cartão de débito</option>
+                <option value="pix">PIX</option>
+                <option value="transferencia">Transferência</option>
+                <option value="convenio">Convênio</option>
+                <option value="pendente">Pendente</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Status</label>
+              <select class="form-select" id="fl-status">
+                <option value="confirmado">Confirmado</option>
+                <option value="pendente">Pendente</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+            <div class="form-group span2"><label>Observações</label>
+              <textarea id="fl-obs" placeholder="Observações..."></textarea>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModalLanc()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-lanc">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.v2.js"></script>
+</body>
+</html>
