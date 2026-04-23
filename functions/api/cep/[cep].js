@@ -1,6 +1,3 @@
-// functions/api/cep/[cep].js
-// GET /api/cep/:cep → busca endereço no ViaCEP
-
 export async function onRequestGet({ params }) {
   try {
     const cep = params.cep.replace(/\D/g, '');
