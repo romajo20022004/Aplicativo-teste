@@ -434,11 +434,11 @@ async function saveAgendamento() {
   btn.disabled=false; btn.textContent='Salvar';
   if(!res.ok) { toast(res.error||'Erro ao salvar','error'); return; }
 
-  // Criar lançamento automático se ficou realizado e não era antes
+  const pac = state.pacientes.find(p=>p.id===data.paciente_id);
+  const agId = state.editingId || res.id;
+
   if(ficouRealizado && !eraRealizado) {
-    const pac = state.pacientes.find(p=>p.id===data.paciente_id);
-    const med = state.medicos.find(m=>m.id===data.medico_id);
-    const agId = state.editingId || res.id;
+    // Novo lançamento — consulta marcada como realizada pela primeira vez
     await API.post('/api/financeiro', {
       tipo: 'receita',
       categoria: pac?.convenio || 'Particular',
@@ -452,6 +452,41 @@ async function saveAgendamento() {
       observacoes: ''
     });
     toast('Consulta realizada! Lançamento criado no financeiro.');
+  } else if(ficouRealizado && eraRealizado && state.editingId) {
+    // Já era realizado — buscar lançamento vinculado e atualizar valor/status
+    const lancRes = await API.get('/api/financeiro?data_ini=2020-01-01&data_fim=2099-12-31');
+    if(lancRes.ok) {
+      const lanc = lancRes.lancamentos?.find(l=>l.agendamento_id===state.editingId);
+      if(lanc) {
+        await API.put('/api/financeiro/'+lanc.id, {
+          tipo: lanc.tipo,
+          categoria: lanc.categoria,
+          descricao: lanc.descricao,
+          valor: data.valor,
+          data: lanc.data,
+          medico_id: lanc.medico_id,
+          status: data.status_pgto === 'pago' ? 'confirmado' : 'pendente',
+          forma_pgto: data.status_pgto === 'pago' ? 'dinheiro' : 'pendente',
+          observacoes: lanc.observacoes||''
+        });
+        toast('Agendamento e lançamento financeiro atualizados!');
+      } else {
+        // Não tinha lançamento ainda — cria um novo
+        await API.post('/api/financeiro', {
+          tipo: 'receita',
+          categoria: pac?.convenio || 'Particular',
+          descricao: `Consulta — ${pac?.nome || 'Paciente'} (${data.tipo})`,
+          valor: data.valor,
+          data: data.data,
+          medico_id: data.medico_id,
+          agendamento_id: agId,
+          status: data.status_pgto === 'pago' ? 'confirmado' : 'pendente',
+          forma_pgto: data.status_pgto === 'pago' ? 'dinheiro' : 'pendente',
+          observacoes: ''
+        });
+        toast('Lançamento financeiro criado!');
+      }
+    }
   } else {
     toast(state.editingId?'Agendamento atualizado!':'Agendamento criado!');
   }
