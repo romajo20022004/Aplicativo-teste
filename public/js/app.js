@@ -320,7 +320,7 @@ function renderAgenda() {
   container.innerHTML = medAtivos.map(med => {
     const agendMed = state.agendamentos.filter(a=>a.medico_id===med.id);
     const slots = horas.map(h => {
-      const ag = agendMed.find(a=>a.hora===h);
+      const ag = agendMed.find(a=>fmt_time(a.data_hora)===h);
       if(ag) {
         const statusColor = { agendado:'#185FA5', confirmado:'#0F6E56', realizado:'#3B6D11', cancelado:'#A32D2D', faltou:'#854F0B' };
         const pgtoColor   = { pendente:'#854F0B', pago:'#0F6E56', convênio:'#185FA5', isento:'#888' };
@@ -398,8 +398,8 @@ async function editAgendamento(id) {
     state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome} — ${m.especialidade}</option>`).join('');
   $('#fa-paciente').value = a.paciente_id;
   $('#fa-medico').value   = a.medico_id;
-  $('#fa-data').value     = a.data;
-  $('#fa-hora').value     = a.hora;
+  $('#fa-data').value     = a.data_hora.slice(0,10);
+  $('#fa-hora').value     = a.data_hora.slice(11,16);
   $('#fa-duracao').value  = a.duracao_min;
   $('#fa-tipo').value     = a.tipo;
   $('#fa-valor').value    = a.valor;
@@ -413,8 +413,7 @@ async function saveAgendamento() {
   const data = {
     paciente_id: parseInt($('#fa-paciente').value),
     medico_id:   parseInt($('#fa-medico').value),
-    data: $('#fa-data').value,
-    hora: $('#fa-hora').value||'08:00',
+    data_hora:   $('#fa-data').value + 'T' + ($('#fa-hora').value||'08:00') + ':00',
     duracao_min: parseInt($('#fa-duracao').value)||30,
     tipo:        $('#fa-tipo').value,
     valor:       parseFloat($('#fa-valor').value)||0,
@@ -454,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(active==='pacientes')  newPaciente();
     if(active==='medicos')    newMedico();
     if(active==='agenda')     newAgendamento();
+    if(active==='financeiro') newLancamento();
   });
 
   let searchTimer;
@@ -478,6 +478,13 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#modal-ag-overlay').addEventListener('click', e=>{ if(e.target===$('#modal-ag-overlay')) closeModalAgendamento(); });
 
   // Agenda nav
+  document.getElementById('fin-data-ini')?.addEventListener('change', function(){ finState.data_ini=this.value; loadFinanceiro(); });
+  document.getElementById('fin-data-fim')?.addEventListener('change', function(){ finState.data_fim=this.value; loadFinanceiro(); });
+  document.getElementById('fin-medico-sel')?.addEventListener('change', function(){ finState.medico_id=this.value; loadFinanceiro(); });
+  document.getElementById('btn-sync')?.addEventListener('click', syncAgendamentos);
+  document.getElementById('btn-save-lanc')?.addEventListener('click', saveLancamento);
+  document.getElementById('btn-cancel-lanc')?.addEventListener('click', closeModalLanc);
+  document.getElementById('modal-lanc-overlay')?.addEventListener('click', e=>{ if(e.target===document.getElementById('modal-lanc-overlay')) closeModalLanc(); });
   document.getElementById('btn-agenda-prev')?.addEventListener('click', ()=>agendaNavDate(-1));
   document.getElementById('btn-agenda-next')?.addEventListener('click', ()=>agendaNavDate(+1));
   document.getElementById('btn-agenda-hoje')?.addEventListener('click', ()=>{ state.agendaDate=new Date().toISOString().slice(0,10); loadAgenda(); });
@@ -495,5 +502,195 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   navTo('pacientes');
+  // Init financeiro dates
+  const today = new Date().toISOString().slice(0,10);
+  const firstDay = today.slice(0,7) + '-01';
+  const elIni = document.getElementById('fin-data-ini');
+  const elFim = document.getElementById('fin-data-fim');
+  if(elIni) elIni.value = firstDay;
+  if(elFim) elFim.value = today;
+  finState.data_ini = firstDay;
+  finState.data_fim = today;
   loadMedicos();
 });
+
+// ══════════════════════════════════════════════
+// FINANCEIRO
+// ══════════════════════════════════════════════
+const finState = {
+  data_ini: new Date().toISOString().slice(0,7) + '-01',
+  data_fim: new Date().toISOString().slice(0,10),
+  medico_id: '',
+  dados: null
+};
+
+async function loadFinanceiro() {
+  const params = new URLSearchParams({
+    data_ini: finState.data_ini,
+    data_fim: finState.data_fim,
+  });
+  if (finState.medico_id) params.set('medico_id', finState.medico_id);
+
+  const res = await API.get('/api/financeiro?' + params);
+  if (!res.ok) { toast('Erro ao carregar financeiro', 'error'); return; }
+  finState.dados = res;
+  renderFinanceiro();
+  popularFinMedicos();
+}
+
+function renderFinanceiro() {
+  const d = finState.dados;
+  if (!d) return;
+  const r = d.resumo;
+
+  // Métricas
+  document.getElementById('fin-receita').textContent   = fmt_brl(r.total_receita || 0);
+  document.getElementById('fin-despesa').textContent   = fmt_brl(r.total_despesa || 0);
+  document.getElementById('fin-resultado').textContent = fmt_brl((r.total_receita||0) - (r.total_despesa||0));
+  document.getElementById('fin-pendente').textContent  = fmt_brl(r.receita_pendente || 0);
+
+  // Tabela por médico
+  const tbMed = document.getElementById('fin-med-tbody');
+  if (tbMed) {
+    const maxVal = Math.max(...(d.porMedico||[]).map(m=>m.total), 1);
+    tbMed.innerHTML = (d.porMedico||[]).map(m => `
+      <tr>
+        <td><div class="flex-row">
+          <div class="av" style="background:${m.cor||'#E6F1FB'}22;color:${m.cor||'#185FA5'};font-size:10px">${initials(m.nome)}</div>
+          <div><div style="font-weight:500;font-size:12px">${m.nome}</div><div style="font-size:10px;color:var(--sub)">${m.especialidade}</div></div>
+        </div></td>
+        <td>${m.qtd}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:6px;background:var(--color-background-secondary,#f0f0f0);border-radius:3px">
+              <div style="height:6px;border-radius:3px;background:${m.cor||'#185FA5'};width:${Math.round((m.total/maxVal)*100)}%"></div>
+            </div>
+            <span style="font-size:12px;font-weight:500;min-width:80px;text-align:right">${fmt_brl(m.total)}</span>
+          </div>
+        </td>
+      </tr>`).join('') || '<tr><td colspan="3" class="tbl-empty">Nenhum dado</td></tr>';
+  }
+
+  // Tabela por convênio
+  const tbConv = document.getElementById('fin-conv-tbody');
+  if (tbConv) {
+    tbConv.innerHTML = (d.porConvenio||[]).map(c => `
+      <tr>
+        <td><span class="badge badge-blue">${c.categoria}</span></td>
+        <td>${c.qtd}</td>
+        <td style="font-weight:500">${fmt_brl(c.total)}</td>
+      </tr>`).join('') || '<tr><td colspan="3" class="tbl-empty">Nenhum dado</td></tr>';
+  }
+
+  // Tabela lançamentos
+  const tbLanc = document.getElementById('fin-lanc-tbody');
+  if (tbLanc) {
+    tbLanc.innerHTML = (d.lancamentos||[]).map(l => `
+      <tr>
+        <td>${fmt_date(l.data)}</td>
+        <td><span class="badge ${l.tipo==='receita'?'badge-teal':'badge-coral'}">${l.tipo}</span></td>
+        <td>${l.descricao}</td>
+        <td>${l.medico_nome||'—'}</td>
+        <td><span class="badge badge-blue">${l.categoria}</span></td>
+        <td><span class="badge ${l.status==='confirmado'?'badge-teal':l.status==='pendente'?'badge-amber':'badge-red'}">${l.status}</span></td>
+        <td style="font-weight:500;color:${l.tipo==='receita'?'var(--teal-mid)':'var(--coral-mid)'}">${l.tipo==='receita'?'+':'-'} ${fmt_brl(l.valor)}</td>
+        <td><div class="flex-row">
+          <button class="btn btn-sm" onclick="editLancamento(${l.id})">✎</button>
+          <button class="btn btn-sm btn-danger" onclick="confirmDeleteLancamento(${l.id})">🗑</button>
+        </div></td>
+      </tr>`).join('') || '<tr><td colspan="8" class="tbl-empty">Nenhum lançamento no período</td></tr>';
+  }
+}
+
+// Modal lançamento
+function newLancamento() {
+  state.editingId = null; state.editingType = 'lancamento';
+  document.getElementById('fl-form').reset();
+  document.getElementById('fl-data').value = new Date().toISOString().slice(0,10);
+  // popular médicos
+  document.getElementById('fl-medico').innerHTML =
+    '<option value="">Geral (sem médico)</option>' +
+    state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  openModalLanc('Novo Lançamento');
+}
+
+function openModalLanc(title) {
+  document.getElementById('modal-lanc-title').textContent = title;
+  document.getElementById('modal-lanc-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModalLanc() {
+  document.getElementById('modal-lanc-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  state.editingId = null;
+}
+
+async function editLancamento(id) {
+  const res = await API.get('/api/financeiro/' + id);
+  if (!res.ok) { toast('Erro', 'error'); return; }
+  const l = res.data; state.editingId = id; state.editingType = 'lancamento';
+  document.getElementById('fl-tipo').value        = l.tipo;
+  document.getElementById('fl-categoria').value   = l.categoria;
+  document.getElementById('fl-descricao').value   = l.descricao;
+  document.getElementById('fl-valor').value       = l.valor;
+  document.getElementById('fl-data').value        = l.data;
+  document.getElementById('fl-status').value      = l.status;
+  document.getElementById('fl-forma').value       = l.forma_pgto||'dinheiro';
+  document.getElementById('fl-obs').value         = l.observacoes||'';
+  document.getElementById('fl-medico').innerHTML  =
+    '<option value="">Geral (sem médico)</option>' +
+    state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  document.getElementById('fl-medico').value = l.medico_id||'';
+  openModalLanc('Editar Lançamento');
+}
+
+async function saveLancamento() {
+  const data = {
+    tipo:       document.getElementById('fl-tipo').value,
+    categoria:  document.getElementById('fl-categoria').value.trim(),
+    descricao:  document.getElementById('fl-descricao').value.trim(),
+    valor:      parseFloat(document.getElementById('fl-valor').value)||0,
+    data:       document.getElementById('fl-data').value,
+    medico_id:  document.getElementById('fl-medico').value||null,
+    status:     document.getElementById('fl-status').value,
+    forma_pgto: document.getElementById('fl-forma').value,
+    observacoes:document.getElementById('fl-obs').value.trim()
+  };
+  if (!data.descricao || !data.valor || !data.data) { toast('Preencha os campos obrigatórios', 'error'); return; }
+  const btn = document.getElementById('btn-save-lanc'); btn.disabled=true; btn.innerHTML='<div class="spinner"></div>';
+  const res = state.editingId ? await API.put('/api/financeiro/'+state.editingId, data) : await API.post('/api/financeiro', data);
+  btn.disabled=false; btn.textContent='Salvar';
+  if (!res.ok) { toast(res.error||'Erro', 'error'); return; }
+  toast(state.editingId ? 'Lançamento atualizado!' : 'Lançamento criado!');
+  closeModalLanc(); loadFinanceiro();
+}
+
+async function confirmDeleteLancamento(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  const res = await API.del('/api/financeiro/' + id);
+  if (!res.ok) { toast('Erro', 'error'); return; }
+  toast('Lançamento excluído'); loadFinanceiro();
+}
+
+async function syncAgendamentos() {
+  const btn = document.getElementById('btn-sync');
+  btn.disabled = true; btn.textContent = 'Importando...';
+  const res = await API.post('/api/financeiro/sync', {
+    data_ini: finState.data_ini,
+    data_fim: finState.data_fim
+  });
+  btn.disabled = false; btn.textContent = '⟳ Importar realizados';
+  if (!res.ok) { toast(res.error||'Erro', 'error'); return; }
+  toast(`${res.importados} agendamento(s) importado(s)!`);
+  loadFinanceiro();
+}
+
+// Popular select médicos no financeiro quando carregar
+function popularFinMedicos() {
+  const sel = document.getElementById('fin-medico-sel');
+  if (!sel) return;
+  const val = sel.value;
+  sel.innerHTML = '<option value="">Todos os médicos</option>' +
+    state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  sel.value = val;
+}
