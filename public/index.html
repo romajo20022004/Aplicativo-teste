@@ -1,231 +1,339 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>ClinicaApp</title>
-
-<style>
-body{font-family:Arial;margin:0;display:flex}
-aside{width:220px;background:#f4f4f4;padding:12px}
-main{flex:1;padding:20px}
-.card{background:#fff;padding:15px;margin-bottom:15px;border-radius:8px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}
-button{cursor:pointer;margin-right:6px}
-#modal-paciente,#modal{
-  display:none;
-  position:fixed;
-  top:12%;
-  left:50%;
-  transform:translateX(-50%);
-  background:#fff;
-  padding:20px;
-  border:1px solid #ccc;
-  border-radius:10px;
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
-  min-width:380px;
-  z-index:1000
-}
-input,select,textarea{
-  padding:8px;
-  margin-bottom:10px;
-  width:100%;
-  box-sizing:border-box
-}
-label{display:block;font-size:13px;margin-bottom:4px}
-textarea{min-height:90px;resize:vertical}
-.prontuario-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px;
-}
-.prontuario-grid .card{margin-bottom:0}
-.prontuario-wide{grid-column:1 / -1}
-.evolucao-item{
-  border:1px solid #ddd;
-  border-radius:8px;
-  padding:10px;
-  margin-bottom:10px;
-  background:#fafafa
-}
-.small{font-size:12px;color:#666}
-</style>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicaApp</title>
+  <link rel="stylesheet" href="/css/app.css" />
 </head>
-
 <body>
 
-<aside>
-  <h3>ClinicaApp</h3>
+<div id="toast-container"></div>
 
-  <p id="user-info"></p>
-
-  <button onclick="mostrar('pacientes')">Pacientes</button>
-  <button onclick="mostrar('agenda')">Agenda</button>
-  <button onclick="mostrar('prontuario')">Prontuário</button>
-  <button id="nav-financeiro" onclick="mostrar('financeiro')">Financeiro</button>
-  <button onclick="logout()">Sair</button>
-</aside>
-
-<main>
-
-  <section id="pacientes">
-    <div class="card">
-      <button id="btn-novo-paciente" onclick="abrirModalPaciente()">+ Novo Paciente</button>
+<!-- ══════════════════════════════════════════════
+     Modal — Cadastro / Edição de Paciente
+═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-title">Novo Paciente</span>
+      <button class="btn btn-sm" id="btn-cancel">✕</button>
     </div>
 
-    <div class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Telefone</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="lista-pacientes"></tbody>
-      </table>
+    <div class="modal-body">
+      <form id="pac-form" onsubmit="return false">
+
+        <!-- Dados pessoais -->
+        <div class="form-section">
+          <div class="form-section-title">Dados Pessoais</div>
+          <div class="form-grid form-grid-2">
+
+            <div class="form-group span2">
+              <label>Nome completo <span class="req">*</span></label>
+              <input type="text" id="f-nome" placeholder="Nome do paciente" autocomplete="off" />
+              <span class="field-error" id="err-nome"></span>
+            </div>
+
+            <div class="form-group">
+              <label>Data de nascimento <span class="req">*</span></label>
+              <input type="date" id="f-nascimento" />
+              <span class="field-error" id="err-nascimento"></span>
+            </div>
+
+            <div class="form-group">
+              <label>CPF <span class="req">*</span></label>
+              <input type="text" id="f-cpf" placeholder="000.000.000-00" maxlength="14" />
+              <span class="field-error" id="err-cpf"></span>
+            </div>
+
+            <div class="form-group">
+              <label>Sexo <span class="req">*</span></label>
+              <select class="form-select" id="f-sexo">
+                <option value="">Selecione...</option>
+                <option value="F">Feminino</option>
+                <option value="M">Masculino</option>
+                <option value="O">Outro</option>
+              </select>
+              <span class="field-error" id="err-sexo"></span>
+            </div>
+
+            <div class="form-group">
+              <label>Telefone <span class="req">*</span></label>
+              <input type="tel" id="f-telefone" placeholder="(11) 99999-9999" maxlength="15" />
+              <span class="field-error" id="err-telefone"></span>
+            </div>
+
+            <div class="form-group span2">
+              <label>E-mail</label>
+              <input type="email" id="f-email" placeholder="email@exemplo.com" />
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Endereço -->
+        <div class="form-section">
+          <div class="form-section-title">Endereço</div>
+          <div class="form-grid form-grid-2">
+
+            <div class="form-group">
+              <label>CEP</label>
+              <input type="text" id="f-cep" placeholder="00000-000" maxlength="9" />
+            </div>
+
+            <div class="form-group">
+              <label>Estado</label>
+              <select class="form-select" id="f-estado">
+                <option value="">UF</option>
+                <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+                <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+                <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+                <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+                <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+                <option selected>SP</option><option>SE</option><option>TO</option>
+              </select>
+            </div>
+
+            <div class="form-group span2">
+              <label>Logradouro</label>
+              <input type="text" id="f-logradouro" placeholder="Rua, Avenida, Alameda..." />
+            </div>
+
+            <div class="form-group">
+              <label>Número</label>
+              <input type="text" id="f-numero" placeholder="Nº" />
+            </div>
+
+            <div class="form-group">
+              <label>Complemento</label>
+              <input type="text" id="f-complemento" placeholder="Apto, Bloco..." />
+            </div>
+
+            <div class="form-group">
+              <label>Bairro</label>
+              <input type="text" id="f-bairro" placeholder="Bairro" />
+            </div>
+
+            <div class="form-group">
+              <label>Cidade</label>
+              <input type="text" id="f-cidade" placeholder="Cidade" />
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Convênio e Financeiro -->
+        <div class="form-section">
+          <div class="form-section-title">Convênio &amp; Financeiro</div>
+          <div class="form-grid form-grid-2">
+
+            <div class="form-group">
+              <label>Convênio <span class="req">*</span></label>
+              <select class="form-select" id="f-convenio">
+                <option>Particular</option>
+                <option>Unimed</option>
+                <option>Bradesco Saúde</option>
+                <option>SulAmérica</option>
+                <option>Amil</option>
+                <option>Porto Seguro</option>
+                <option>Hapvida</option>
+                <option>NotreDame Intermédica</option>
+                <option>Outros</option>
+              </select>
+              <span class="field-error" id="err-convenio"></span>
+            </div>
+
+            <div class="form-group">
+              <label>Nº da Carteirinha</label>
+              <input type="text" id="f-num-carteira" placeholder="Número do plano" />
+            </div>
+
+            <div class="form-group">
+              <label>Valor da consulta (R$) <span class="req">*</span></label>
+              <input type="number" id="f-valor" placeholder="0,00" step="0.01" min="0" />
+            </div>
+
+            <div class="form-group">
+              <label>Status</label>
+              <select class="form-select" id="f-status">
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+
+            <div class="form-group span2">
+              <label>Observações</label>
+              <textarea id="f-obs" placeholder="Anotações, alergias, histórico relevante..."></textarea>
+            </div>
+
+          </div>
+        </div>
+
+      </form>
+    </div><!-- /.modal-body -->
+
+    <div class="modal-foot">
+      <button class="btn" id="btn-cancel2" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save">Salvar Paciente</button>
     </div>
-  </section>
-
-  <section id="agenda" style="display:none;">
-    <div class="card">
-      <label for="agenda-medico-filtro">Médico</label>
-      <select id="agenda-medico-filtro"></select>
-
-      <label for="agenda-data">Data</label>
-      <input type="date" id="agenda-data">
-
-      <button id="btn-novo-agendamento" onclick="abrirModalAg()">+ Novo</button>
-    </div>
-
-    <div class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>Hora</th>
-            <th>Paciente</th>
-            <th>Médico</th>
-            <th>Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="agenda-lista"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section id="prontuario" style="display:none;">
-    <div class="card">
-      <h3 id="prontuario-titulo">Prontuário</h3>
-      <p id="prontuario-subtitulo" class="small">Selecione um paciente na lista para abrir o prontuário.</p>
-    </div>
-
-    <div class="prontuario-grid">
-      <div class="card">
-        <label>Queixa principal</label>
-        <textarea id="pr-queixa"></textarea>
-      </div>
-
-      <div class="card">
-        <label>CID</label>
-        <textarea id="pr-cid"></textarea>
-      </div>
-
-      <div class="card prontuario-wide">
-        <label>HDA</label>
-        <textarea id="pr-hda"></textarea>
-      </div>
-
-      <div class="card prontuario-wide">
-        <label>HMP</label>
-        <textarea id="pr-hmp"></textarea>
-      </div>
-
-      <div class="card prontuario-wide">
-        <label>Exame físico</label>
-        <textarea id="pr-exame-fisico"></textarea>
-      </div>
-
-      <div class="card prontuario-wide">
-        <label>Exames</label>
-        <textarea id="pr-exames"></textarea>
-      </div>
-
-      <div class="card prontuario-wide">
-        <label>Conduta</label>
-        <textarea id="pr-conduta"></textarea>
-      </div>
-    </div>
-
-    <div class="card">
-      <button id="btn-salvar-prontuario" onclick="salvarProntuario()">Salvar prontuário</button>
-    </div>
-
-    <div class="card">
-      <h3>Evolução</h3>
-      <textarea id="pr-evolucao-texto" placeholder="Escreva a evolução clínica..."></textarea>
-      <button id="btn-salvar-evolucao" onclick="salvarEvolucao()">Adicionar evolução</button>
-    </div>
-
-    <div class="card">
-      <h3>Histórico de evoluções</h3>
-      <div id="lista-evolucoes"></div>
-    </div>
-  </section>
-
-  <section id="financeiro" style="display:none;">
-    <div class="card">
-      <h3>Financeiro</h3>
-      <p>Módulo restrito ao administrador.</p>
-    </div>
-  </section>
-
-</main>
-
-<div id="modal-paciente">
-  <div class="card">
-    <h3>Novo Paciente</h3>
-
-    <input id="p-nome" placeholder="Nome">
-    <input id="p-telefone" placeholder="Telefone">
-
-    <button onclick="salvarPaciente()">Salvar</button>
-    <button onclick="fecharModalPaciente()">Cancelar</button>
   </div>
 </div>
 
-<div id="modal">
-  <div class="card">
-    <h3>Novo Agendamento</h3>
+<!-- ══════════════════════════════════════════════
+     App principal
+═══════════════════════════════════════════════ -->
+<div class="app">
 
-    <label for="ag-paciente">Paciente</label>
-    <select id="ag-paciente"></select>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:-2px;margin-right:4px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        ClinicaApp
+        <small>Sistema de Consultório</small>
+      </div>
+    </div>
 
-    <label for="ag-medico">Médico</label>
-    <select id="ag-medico"></select>
+    <div class="role-area">
+      <div class="role-label">Perfil</div>
+      <select class="role-select" id="role-select">
+        <option value="admin">Admin</option>
+        <option value="medico">Médico</option>
+        <option value="secretaria">Secretaria</option>
+      </select>
+    </div>
 
-    <label for="ag-data">Data</label>
-    <input type="date" id="ag-data">
+    <nav class="nav">
+      <button class="nav-item" data-page="dashboard" id="nav-dashboard">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" data-page="pacientes" id="nav-pacientes">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Pacientes</span>
+      </button>
+      <button class="nav-item" data-page="agenda" id="nav-agenda">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Agenda</span>
+      </button>
+      <button class="nav-item" data-page="financeiro" id="nav-financeiro">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Financeiro</span>
+      </button>
+    </nav>
+  </aside>
 
-    <label for="ag-hora">Hora</label>
-    <input type="time" id="ag-hora">
+  <!-- Conteúdo principal -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-title" id="topbar-title">Pacientes</span>
+      </div>
+      <div class="flex-row">
+        <input class="search-input" id="search-input" placeholder="Buscar paciente..." />
+        <select class="filter-sel" id="filter-status" style="display:none">
+          <option value="">Todos os status</option>
+          <option value="ativo">Ativos</option>
+          <option value="inativo">Inativos</option>
+        </select>
+        <button class="btn btn-primary" id="btn-add">+ Novo Paciente</button>
+      </div>
+    </div>
 
-    <label for="ag-status">Status</label>
-    <select id="ag-status">
-      <option value="agendado">Agendado</option>
-      <option value="confirmado">Confirmado</option>
-      <option value="atendido">Atendido</option>
-      <option value="cancelado">Cancelado</option>
-    </select>
+    <div class="content">
 
-    <button onclick="salvarAg()">Salvar</button>
-    <button onclick="fecharModalAg()">Cancelar</button>
-  </div>
-</div>
+      <!-- ── Dashboard ── -->
+      <div class="section" id="sec-dashboard">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total de pacientes</div><div class="metric-val" style="color:var(--blue)" id="m-total">—</div></div>
+          <div class="metric"><div class="metric-label">Consultas hoje</div><div class="metric-val" style="color:var(--teal-mid)">14</div></div>
+          <div class="metric"><div class="metric-label">Receita do mês</div><div class="metric-val" style="color:var(--amber-mid)">R$ 42.800</div></div>
+          <div class="metric"><div class="metric-label">Pendências</div><div class="metric-val" style="color:var(--coral-mid)">3</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Acesso rápido</span></div>
+          <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <button class="btn" style="padding:20px;flex-direction:column;gap:8px;font-size:13px" onclick="navTo('pacientes')">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              Pacientes
+            </button>
+            <button class="btn" style="padding:20px;flex-direction:column;gap:8px;font-size:13px" onclick="navTo('agenda')">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Agenda
+            </button>
+            <button class="btn" style="padding:20px;flex-direction:column;gap:8px;font-size:13px" onclick="navTo('financeiro')">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Financeiro
+            </button>
+          </div>
+        </div>
+      </div>
 
-<script src="/js/auth-guard.js"></script>
+      <!-- ── Pacientes ── -->
+      <div class="section" id="sec-pacientes">
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total cadastrados</div><div class="metric-val" style="color:var(--blue)" id="m-total">—</div></div>
+          <div class="metric"><div class="metric-label">Ativos</div><div class="metric-val" style="color:var(--teal-mid)" id="m-ativos">—</div></div>
+          <div class="metric"><div class="metric-label">Inativos</div><div class="metric-val" style="color:var(--coral-mid)" id="m-inativos">—</div></div>
+          <div class="metric"><div class="metric-label">Ticket médio</div><div class="metric-val" style="color:var(--amber-mid)" id="m-ticket">—</div></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+          <select class="filter-sel" id="filter-status">
+            <option value="">Todos os status</option>
+            <option value="ativo">Ativos</option>
+            <option value="inativo">Inativos</option>
+          </select>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">Lista de Pacientes</span>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Paciente</th>
+                  <th>Nascimento</th>
+                  <th>Contato</th>
+                  <th>Convênio</th>
+                  <th>Valor Consulta</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="pac-tbody">
+                <tr><td colspan="7" class="tbl-empty">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Agenda ── -->
+      <div class="section" id="sec-agenda">
+        <div class="coming-soon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <p style="font-size:15px;font-weight:500">Módulo de Agenda</p>
+          <p style="font-size:13px;color:var(--sub)">Em desenvolvimento — próxima etapa</p>
+        </div>
+      </div>
+
+      <!-- ── Financeiro ── -->
+      <div class="section" id="sec-financeiro">
+        <div class="coming-soon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <p style="font-size:15px;font-weight:500">Módulo Financeiro</p>
+          <p style="font-size:13px;color:var(--sub)">Em desenvolvimento — usará os valores das consultas dos pacientes</p>
+        </div>
+      </div>
+
+    </div><!-- /.content -->
+  </div><!-- /.main -->
+</div><!-- /.app -->
+
 <script src="/js/app.js"></script>
-
 </body>
 </html>
