@@ -320,7 +320,7 @@ function renderAgenda() {
   container.innerHTML = medAtivos.map(med => {
     const agendMed = state.agendamentos.filter(a=>a.medico_id===med.id);
     const slots = horas.map(h => {
-      const ag = agendMed.find(a=>fmt_time(a.data_hora)===h);
+      const ag = agendMed.find(a=>a.hora===h);
       if(ag) {
         const statusColor = { agendado:'#185FA5', confirmado:'#0F6E56', realizado:'#3B6D11', cancelado:'#A32D2D', faltou:'#854F0B' };
         const pgtoColor   = { pendente:'#854F0B', pago:'#0F6E56', convênio:'#185FA5', isento:'#888' };
@@ -398,8 +398,8 @@ async function editAgendamento(id) {
     state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome} — ${m.especialidade}</option>`).join('');
   $('#fa-paciente').value = a.paciente_id;
   $('#fa-medico').value   = a.medico_id;
-  $('#fa-data').value     = a.data_hora.slice(0,10);
-  $('#fa-hora').value     = a.data_hora.slice(11,16);
+  $('#fa-data').value     = a.data;
+  $('#fa-hora').value     = a.hora;
   $('#fa-duracao').value  = a.duracao_min;
   $('#fa-tipo').value     = a.tipo;
   $('#fa-valor').value    = a.valor;
@@ -413,7 +413,8 @@ async function saveAgendamento() {
   const data = {
     paciente_id: parseInt($('#fa-paciente').value),
     medico_id:   parseInt($('#fa-medico').value),
-    data_hora:   $('#fa-data').value + 'T' + ($('#fa-hora').value||'08:00') + ':00',
+    data: $('#fa-data').value,
+    hora: $('#fa-hora').value||'08:00',
     duracao_min: parseInt($('#fa-duracao').value)||30,
     tipo:        $('#fa-tipo').value,
     valor:       parseFloat($('#fa-valor').value)||0,
