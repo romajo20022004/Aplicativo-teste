@@ -1,551 +1,369 @@
-const API_P = "/api/pacientes";
-const API_A = "/api/agendamentos";
-const API_M = "/api/medicos";
-const API_PR = "/api/prontuarios";
+// public/js/app.js
 
-let prontuarioPacienteId = null;
+// ── Estado global ──────────────────────────────────────────────
+const state = {
+  pacientes: [],
+  loading: false,
+  editingId: null,
+  role: 'admin'
+};
 
-function getToken() {
-  const s = JSON.parse(localStorage.getItem('session') || 'null');
-  return s?.token || '';
+// ── Utilitários ────────────────────────────────────────────────
+function $(sel, ctx = document) { return ctx.querySelector(sel); }
+function $$(sel, ctx = document) { return [...ctx.querySelectorAll(sel)]; }
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  $('#toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
 }
 
-function authHeader() {
-  return {
-    Authorization: 'Bearer ' + getToken()
-  };
+function fmt_date(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
 }
 
-function getPerfil() {
-  return window.USER?.perfil || '';
+function fmt_brl(val) {
+  return Number(val).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function isAdmin() {
-  return getPerfil() === 'admin';
+function initials(name) {
+  return (name || '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 }
 
-function isMedico() {
-  return getPerfil() === 'medico';
+function avatarColor(name) {
+  const colors = ['av-blue', 'av-teal', 'av-coral', 'av-amber'];
+  let h = 0;
+  for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return colors[h % colors.length];
 }
 
-function isSecretaria() {
-  return getPerfil() === 'secretaria';
+function maskCPF(v) {
+  return v.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2').slice(0, 14);
+}
+function maskPhone(v) {
+  v = v.replace(/\D/g, '').slice(0, 11);
+  if (v.length <= 10) return v.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').trim().replace(/-$/, '');
+  return v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+}
+function maskCEP(v) {
+  return v.replace(/\D/g, '').replace(/(\d{5})(\d{1,3})/, '$1-$2').slice(0, 9);
 }
 
-function canDeletePaciente() {
-  return isAdmin();
-}
-
-function canCreatePaciente() {
-  return isAdmin() || isMedico() || isSecretaria();
-}
-
-function canCreateAgendamento() {
-  return isAdmin() || isMedico() || isSecretaria();
-}
-
-function canDeleteAgendamento() {
-  return isAdmin() || isSecretaria();
-}
-
-function canViewFinanceiro() {
-  return isAdmin();
-}
-
-function canEditProntuario() {
-  return isAdmin() || isMedico();
-}
-
-function applyAuth() {
-  if (window.USER) {
-    document.getElementById("user-info").innerText =
-      window.USER.email + " (" + window.USER.perfil + ")";
+// ── API ───────────────────────────────────────────────────────
+const API = {
+  async get(path) {
+    const r = await fetch(path);
+    return r.json();
+  },
+  async post(path, body) {
+    const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    return r.json();
+  },
+  async put(path, body) {
+    const r = await fetch(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    return r.json();
+  },
+  async del(path) {
+    const r = await fetch(path, { method: 'DELETE' });
+    return r.json();
   }
+};
 
-  const navFinanceiro = document.getElementById("nav-financeiro");
-  if (navFinanceiro && !canViewFinanceiro()) {
-    navFinanceiro.style.display = "none";
-  }
+// ── Navegação ──────────────────────────────────────────────────
+const PAGES = {
+  pacientes: { title: 'Pacientes', addBtn: '+ Novo Paciente', showSearch: true },
+  agenda:    { title: 'Agenda',    addBtn: '+ Novo Agendamento', showSearch: false },
+  financeiro:{ title: 'Financeiro',addBtn: '+ Lançamento', showSearch: false },
+  dashboard: { title: 'Dashboard', addBtn: '', showSearch: false }
+};
 
-  const btnNovoPaciente = document.getElementById("btn-novo-paciente");
-  if (btnNovoPaciente && !canCreatePaciente()) {
-    btnNovoPaciente.style.display = "none";
-  }
+function navTo(page) {
+  $$('.section').forEach(s => s.classList.remove('active'));
+  $$('.nav-item').forEach(b => b.classList.remove('active'));
+  const sec = document.getElementById('sec-' + page);
+  const btn = document.getElementById('nav-' + page);
+  if (sec) sec.classList.add('active');
+  if (btn) btn.classList.add('active');
 
-  const btnNovoAgendamento = document.getElementById("btn-novo-agendamento");
-  if (btnNovoAgendamento && !canCreateAgendamento()) {
-    btnNovoAgendamento.style.display = "none";
-  }
-
-  const btnSalvarProntuario = document.getElementById("btn-salvar-prontuario");
-  const btnSalvarEvolucao = document.getElementById("btn-salvar-evolucao");
-
-  if (btnSalvarProntuario) {
-    btnSalvarProntuario.style.display = canEditProntuario() ? "" : "none";
-  }
-
-  if (btnSalvarEvolucao) {
-    btnSalvarEvolucao.style.display = canEditProntuario() ? "" : "none";
-  }
+  const cfg = PAGES[page] || {};
+  $('#topbar-title').textContent = cfg.title || page;
+  const addBtn = $('#btn-add');
+  addBtn.textContent = cfg.addBtn || '';
+  addBtn.style.display = cfg.addBtn ? '' : 'none';
+  const search = $('#search-input');
+  search.style.display = cfg.showSearch ? '' : 'none';
+  if (!cfg.showSearch) search.value = '';
 }
 
-function mostrar(sec) {
-  document.getElementById("pacientes").style.display =
-    sec === "pacientes" ? "block" : "none";
+// ── Pacientes — listar ─────────────────────────────────────────
+async function loadPacientes() {
+  const q = $('#search-input').value;
+  const status = $('#filter-status').value;
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (status) params.set('status', status);
 
-  document.getElementById("agenda").style.display =
-    sec === "agenda" ? "block" : "none";
-
-  document.getElementById("prontuario").style.display =
-    sec === "prontuario" ? "block" : "none";
-
-  document.getElementById("financeiro").style.display =
-    sec === "financeiro" ? "block" : "none";
+  const res = await API.get('/api/pacientes?' + params);
+  if (!res.ok) { toast('Erro ao carregar pacientes', 'error'); return; }
+  state.pacientes = res.data;
+  renderTable();
+  renderMetrics();
 }
 
-async function carregarPacientes() {
-  const res = await fetch(API_P, {
-    headers: authHeader()
-  });
-
-  const json = await res.json();
-  const tbody = document.getElementById("lista-pacientes");
-  tbody.innerHTML = "";
-
-  if (!json.ok) {
-    tbody.innerHTML = `<tr><td colspan="3">Erro: ${json.error || 'Falha ao carregar'}</td></tr>`;
+function renderTable() {
+  const tbody = $('#pac-tbody');
+  if (!state.pacientes.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="tbl-empty">Nenhum paciente encontrado</td></tr>';
     return;
   }
-
-  if (!json.data || !json.data.length) {
-    tbody.innerHTML = `<tr><td colspan="3">Nenhum paciente encontrado</td></tr>`;
-    return;
-  }
-
-  json.data.forEach(p => {
-    const tr = document.createElement("tr");
-
-    const deleteHtml = canDeletePaciente()
-      ? `<button onclick="delPaciente(${p.id})">Excluir</button>`
-      : "";
-
-    tr.innerHTML = `
-      <td>${p.nome}</td>
-      <td>${p.telefone || ""}</td>
+  tbody.innerHTML = state.pacientes.map(p => `
+    <tr>
       <td>
-        <button onclick="abrirProntuario(${p.id}, '${String(p.nome).replace(/'/g, "\\'")}')">Prontuário</button>
-        ${deleteHtml}
+        <div class="flex-row">
+          <div class="av ${avatarColor(p.nome)}">${initials(p.nome)}</div>
+          <div>
+            <div style="font-weight:500">${p.nome}</div>
+            <div style="font-size:11px;color:var(--sub)">${p.cpf}</div>
+          </div>
+        </div>
       </td>
-    `;
-
-    tbody.appendChild(tr);
-  });
+      <td>${fmt_date(p.nascimento)}</td>
+      <td>${p.telefone}<br><span style="font-size:11px;color:var(--sub)">${p.email || ''}</span></td>
+      <td><span class="badge ${convenio_badge(p.convenio)}">${p.convenio}</span></td>
+      <td style="font-weight:500">${fmt_brl(p.valor_consulta)}</td>
+      <td><span class="badge ${p.status === 'ativo' ? 'badge-teal' : 'badge-red'}">${p.status === 'ativo' ? 'Ativo' : 'Inativo'}</span></td>
+      <td>
+        <div class="flex-row">
+          <button class="btn btn-sm" onclick="editPaciente(${p.id})" title="Editar">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="confirmDelete(${p.id}, '${p.nome.replace(/'/g, "\\'")}')" title="Excluir">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
 }
 
-function abrirModalPaciente() {
-  if (!canCreatePaciente()) {
-    alert("Seu perfil não pode cadastrar pacientes.");
-    return;
-  }
-  document.getElementById("modal-paciente").style.display = "block";
+function convenio_badge(conv) {
+  const map = { 'Particular': 'badge-blue', 'Unimed': 'badge-teal', 'Bradesco Saúde': 'badge-amber', 'SulAmérica': 'badge-coral', 'Amil': 'badge-green' };
+  return map[conv] || 'badge-blue';
 }
 
-function fecharModalPaciente() {
-  document.getElementById("modal-paciente").style.display = "none";
+function renderMetrics() {
+  const total   = state.pacientes.length;
+  const ativos  = state.pacientes.filter(p => p.status === 'ativo').length;
+  const inativos= state.pacientes.filter(p => p.status === 'inativo').length;
+  const ticket  = total ? state.pacientes.reduce((s, p) => s + (p.valor_consulta || 0), 0) / total : 0;
+  $('#m-total').textContent   = total;
+  $('#m-ativos').textContent  = ativos;
+  $('#m-inativos').textContent= inativos;
+  $('#m-ticket').textContent  = fmt_brl(ticket);
 }
 
-async function salvarPaciente() {
-  if (!canCreatePaciente()) {
-    alert("Seu perfil não pode cadastrar pacientes.");
-    return;
-  }
+// ── Modal ──────────────────────────────────────────────────────
+function openModal(title) {
+  $('#modal-title').textContent = title;
+  $('#modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  $('#modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  state.editingId = null;
+  resetForm();
+}
 
-  const nome = document.getElementById("p-nome").value.trim();
-  const telefone = document.getElementById("p-telefone").value.trim();
+function resetForm() {
+  const form = $('#pac-form');
+  form.reset();
+  $$('.field-error', form).forEach(e => e.textContent = '');
+  $$('.error', form).forEach(e => e.classList.remove('error'));
+}
 
-  if (!nome || !telefone) {
-    alert("Preencha nome e telefone.");
-    return;
-  }
-
-  const body = {
-    nome,
-    nascimento: "2000-01-01",
-    cpf: String(Date.now()).slice(-11),
-    sexo: "M",
-    telefone
+function formData() {
+  return {
+    nome:          $('#f-nome').value.trim(),
+    nascimento:    $('#f-nascimento').value,
+    cpf:           $('#f-cpf').value.trim(),
+    sexo:          $('#f-sexo').value,
+    telefone:      $('#f-telefone').value.trim(),
+    email:         $('#f-email').value.trim(),
+    cep:           $('#f-cep').value.trim(),
+    logradouro:    $('#f-logradouro').value.trim(),
+    numero:        $('#f-numero').value.trim(),
+    complemento:   $('#f-complemento').value.trim(),
+    bairro:        $('#f-bairro').value.trim(),
+    cidade:        $('#f-cidade').value.trim(),
+    estado:        $('#f-estado').value,
+    convenio:      $('#f-convenio').value,
+    num_carteira:  $('#f-num-carteira').value.trim(),
+    valor_consulta:parseFloat($('#f-valor').value) || 0,
+    status:        $('#f-status').value,
+    observacoes:   $('#f-obs').value.trim()
   };
-
-  const res = await fetch(API_P, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader()
-    },
-    body: JSON.stringify(body)
-  });
-
-  const json = await res.json();
-
-  if (!json.ok) {
-    alert(json.error || "Erro ao cadastrar paciente");
-    return;
-  }
-
-  document.getElementById("modal-paciente").style.display = "none";
-  document.getElementById("p-nome").value = "";
-  document.getElementById("p-telefone").value = "";
-
-  await carregarPacientes();
-  await carregarPacientesNosSelects();
 }
 
-async function delPaciente(id) {
-  if (!canDeletePaciente()) {
-    alert("Seu perfil não pode excluir pacientes.");
-    return;
-  }
-
-  if (!confirm("Excluir paciente?")) return;
-
-  const res = await fetch(`/api/pacientes/${id}`, {
-    method: "DELETE",
-    headers: authHeader()
+function validateForm(data) {
+  let ok = true;
+  const required = [
+    ['f-nome',       'nome',       'Nome é obrigatório'],
+    ['f-nascimento', 'nascimento', 'Data de nascimento é obrigatória'],
+    ['f-cpf',        'cpf',        'CPF é obrigatório'],
+    ['f-sexo',       'sexo',       'Sexo é obrigatório'],
+    ['f-telefone',   'telefone',   'Telefone é obrigatório'],
+    ['f-convenio',   'convenio',   'Convênio é obrigatório'],
+  ];
+  required.forEach(([id, field, msg]) => {
+    const el = document.getElementById(id);
+    const err = document.getElementById('err-' + field);
+    if (!data[field]) {
+      el.classList.add('error');
+      if (err) err.textContent = msg;
+      ok = false;
+    } else {
+      el.classList.remove('error');
+      if (err) err.textContent = '';
+    }
   });
-
-  const json = await res.json();
-
-  if (!json.ok) {
-    alert(json.error || "Erro ao excluir paciente");
-    return;
-  }
-
-  await carregarPacientes();
-  await carregarPacientesNosSelects();
+  return ok;
 }
 
-async function carregarMedicosNosSelects() {
-  const res = await fetch(API_M, {
-    headers: authHeader()
-  });
-
-  const json = await res.json();
-
-  const filtro = document.getElementById("agenda-medico-filtro");
-  const selectModal = document.getElementById("ag-medico");
-
-  filtro.innerHTML = `<option value="">Todos os médicos</option>`;
-  selectModal.innerHTML = `<option value="">Selecione um médico</option>`;
-
-  if (!json.ok || !json.data) return;
-
-  json.data.forEach(m => {
-    const opt1 = document.createElement("option");
-    opt1.value = m.id;
-    opt1.textContent = m.nome;
-    filtro.appendChild(opt1);
-
-    const opt2 = document.createElement("option");
-    opt2.value = m.id;
-    opt2.textContent = m.nome;
-    selectModal.appendChild(opt2);
-  });
+function newPaciente() {
+  state.editingId = null;
+  resetForm();
+  openModal('Novo Paciente');
+  setTimeout(() => $('#f-nome').focus(), 100);
 }
 
-async function carregarPacientesNosSelects() {
-  const res = await fetch(API_P, {
-    headers: authHeader()
-  });
+async function editPaciente(id) {
+  const res = await API.get('/api/pacientes/' + id);
+  if (!res.ok) { toast('Erro ao carregar paciente', 'error'); return; }
+  const p = res.data;
+  state.editingId = id;
 
-  const json = await res.json();
-  const select = document.getElementById("ag-paciente");
-  select.innerHTML = `<option value="">Selecione um paciente</option>`;
+  $('#f-nome').value        = p.nome || '';
+  $('#f-nascimento').value  = p.nascimento || '';
+  $('#f-cpf').value         = p.cpf || '';
+  $('#f-sexo').value        = p.sexo || '';
+  $('#f-telefone').value    = p.telefone || '';
+  $('#f-email').value       = p.email || '';
+  $('#f-cep').value         = p.cep || '';
+  $('#f-logradouro').value  = p.logradouro || '';
+  $('#f-numero').value      = p.numero || '';
+  $('#f-complemento').value = p.complemento || '';
+  $('#f-bairro').value      = p.bairro || '';
+  $('#f-cidade').value      = p.cidade || '';
+  $('#f-estado').value      = p.estado || '';
+  $('#f-convenio').value    = p.convenio || 'Particular';
+  $('#f-num-carteira').value= p.num_carteira || '';
+  $('#f-valor').value       = p.valor_consulta || '';
+  $('#f-status').value      = p.status || 'ativo';
+  $('#f-obs').value         = p.observacoes || '';
 
-  if (!json.ok || !json.data) return;
-
-  json.data.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-    opt.textContent = p.nome;
-    select.appendChild(opt);
-  });
+  openModal('Editar Paciente — ' + p.nome);
 }
 
-async function carregarAgenda() {
-  const data = document.getElementById("agenda-data").value;
-  const medicoId = document.getElementById("agenda-medico-filtro").value;
+async function savePaciente() {
+  const data = formData();
+  if (!validateForm(data)) return;
 
-  let url = `${API_A}?data=${encodeURIComponent(data)}`;
-  if (medicoId) {
-    url += `&medico_id=${encodeURIComponent(medicoId)}`;
+  const saveBtn = $('#btn-save');
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<div class="spinner"></div>';
+
+  let res;
+  if (state.editingId) {
+    res = await API.put('/api/pacientes/' + state.editingId, data);
+  } else {
+    res = await API.post('/api/pacientes', data);
   }
 
-  const res = await fetch(url, {
-    headers: authHeader()
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Salvar';
+
+  if (!res.ok) {
+    toast(res.error || 'Erro ao salvar', 'error');
+    return;
+  }
+
+  toast(state.editingId ? 'Paciente atualizado!' : 'Paciente cadastrado!');
+  closeModal();
+  loadPacientes();
+}
+
+async function confirmDelete(id, nome) {
+  if (!confirm(`Excluir o paciente "${nome}"? Esta ação não pode ser desfeita.`)) return;
+  const res = await API.del('/api/pacientes/' + id);
+  if (!res.ok) { toast('Erro ao excluir', 'error'); return; }
+  toast('Paciente excluído');
+  loadPacientes();
+}
+
+// ── CEP lookup ─────────────────────────────────────────────────
+async function lookupCEP(cep) {
+  const raw = cep.replace(/\D/g, '');
+  if (raw.length !== 8) return;
+  const res = await API.get('/api/cep/' + raw);
+  if (!res.ok) { toast('CEP não encontrado', 'error'); return; }
+  const d = res.data;
+  $('#f-logradouro').value = d.logradouro || '';
+  $('#f-bairro').value     = d.bairro     || '';
+  $('#f-cidade').value     = d.cidade     || '';
+  $('#f-estado').value     = d.estado     || '';
+  $('#f-numero').focus();
+}
+
+// ── Init ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Navegação
+  $$('.nav-item[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => navTo(btn.dataset.page));
   });
 
-  const json = await res.json();
-  const tbody = document.getElementById("agenda-lista");
-  tbody.innerHTML = "";
-
-  if (!json.ok) {
-    tbody.innerHTML = `<tr><td colspan="5">Erro: ${json.error || 'Falha ao carregar'}</td></tr>`;
-    return;
-  }
-
-  if (!json.data || !json.data.length) {
-    tbody.innerHTML = `<tr><td colspan="5">Nenhum agendamento encontrado</td></tr>`;
-    return;
-  }
-
-  json.data.forEach(a => {
-    const tr = document.createElement("tr");
-
-    const actionHtml = canDeleteAgendamento()
-      ? `<button onclick="delAg(${a.id})">Excluir</button>`
-      : "";
-
-    tr.innerHTML = `
-      <td>${a.hora || ""}</td>
-      <td>${a.paciente_nome || ""}</td>
-      <td>${a.medico_nome || ""}</td>
-      <td>${a.status || ""}</td>
-      <td>${actionHtml}</td>
-    `;
-
-    tbody.appendChild(tr);
-  });
-}
-
-async function abrirModalAg() {
-  if (!canCreateAgendamento()) {
-    alert("Seu perfil não pode criar agendamentos.");
-    return;
-  }
-
-  await carregarPacientesNosSelects();
-  await carregarMedicosNosSelects();
-
-  document.getElementById("ag-data").value = document.getElementById("agenda-data").value;
-  document.getElementById("ag-hora").value = "";
-  document.getElementById("ag-status").value = "agendado";
-
-  const filtroMedico = document.getElementById("agenda-medico-filtro").value;
-  if (filtroMedico) {
-    document.getElementById("ag-medico").value = filtroMedico;
-  }
-
-  document.getElementById("modal").style.display = "block";
-}
-
-function fecharModalAg() {
-  document.getElementById("modal").style.display = "none";
-}
-
-async function salvarAg() {
-  if (!canCreateAgendamento()) {
-    alert("Seu perfil não pode criar agendamentos.");
-    return;
-  }
-
-  const body = {
-    paciente_id: document.getElementById("ag-paciente").value,
-    medico_id: document.getElementById("ag-medico").value,
-    data: document.getElementById("ag-data").value,
-    hora: document.getElementById("ag-hora").value,
-    status: document.getElementById("ag-status").value
-  };
-
-  if (!body.paciente_id || !body.medico_id || !body.data || !body.hora) {
-    alert("Preencha paciente, médico, data e hora.");
-    return;
-  }
-
-  const res = await fetch(API_A, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader()
-    },
-    body: JSON.stringify(body)
+  // Botão add
+  $('#btn-add').addEventListener('click', () => {
+    const active = $$('.nav-item.active')[0]?.dataset.page;
+    if (active === 'pacientes') newPaciente();
   });
 
-  const json = await res.json();
+  // Busca e filtro
+  let searchTimer;
+  $('#search-input').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadPacientes, 350);
+  });
+  $('#filter-status').addEventListener('change', loadPacientes);
 
-  if (!json.ok) {
-    alert(json.error || "Erro ao criar agendamento");
-    return;
-  }
-
-  document.getElementById("modal").style.display = "none";
-  await carregarAgenda();
-}
-
-async function delAg(id) {
-  if (!canDeleteAgendamento()) {
-    alert("Seu perfil não pode excluir agendamentos.");
-    return;
-  }
-
-  if (!confirm("Excluir agendamento?")) return;
-
-  const res = await fetch(`${API_A}/${id}`, {
-    method: "DELETE",
-    headers: authHeader()
+  // Modal
+  $('#btn-save').addEventListener('click', savePaciente);
+  $('#btn-cancel').addEventListener('click', closeModal);
+  $('#modal-overlay').addEventListener('click', e => {
+    if (e.target === $('#modal-overlay')) closeModal();
   });
 
-  const json = await res.json();
-
-  if (!json.ok) {
-    alert(json.error || "Erro ao excluir agendamento");
-    return;
-  }
-
-  await carregarAgenda();
-}
-
-async function abrirProntuario(pacienteId, pacienteNome) {
-  prontuarioPacienteId = pacienteId;
-  mostrar('prontuario');
-
-  document.getElementById("prontuario-titulo").innerText = `Prontuário - ${pacienteNome}`;
-  document.getElementById("prontuario-subtitulo").innerText = `Paciente ID: ${pacienteId}`;
-
-  const res = await fetch(`${API_PR}/${pacienteId}`, {
-    headers: authHeader()
+  // Máscaras
+  $('#f-cpf').addEventListener('input', function() { this.value = maskCPF(this.value); });
+  $('#f-telefone').addEventListener('input', function() { this.value = maskPhone(this.value); });
+  $('#f-cep').addEventListener('input', function() {
+    this.value = maskCEP(this.value);
+    if (this.value.replace(/\D/g, '').length === 8) lookupCEP(this.value);
   });
 
-  const json = await res.json();
-
-  if (!json.ok) {
-    alert(json.error || "Erro ao carregar prontuário");
-    return;
-  }
-
-  const p = json.data.prontuario;
-
-  document.getElementById("pr-queixa").value = p.queixa_principal || "";
-  document.getElementById("pr-hda").value = p.hda || "";
-  document.getElementById("pr-hmp").value = p.hmp || "";
-  document.getElementById("pr-exame-fisico").value = p.exame_fisico || "";
-  document.getElementById("pr-exames").value = p.exames || "";
-  document.getElementById("pr-conduta").value = p.conduta || "";
-  document.getElementById("pr-cid").value = p.cid || "";
-
-  renderEvolucoes(json.data.evolucoes || []);
-}
-
-function renderEvolucoes(evolucoes) {
-  const el = document.getElementById("lista-evolucoes");
-  el.innerHTML = "";
-
-  if (!evolucoes.length) {
-    el.innerHTML = `<p class="small">Nenhuma evolução registrada.</p>`;
-    return;
-  }
-
-  evolucoes.forEach(ev => {
-    const div = document.createElement("div");
-    div.className = "evolucao-item";
-    div.innerHTML = `
-      <div style="white-space:pre-wrap">${ev.texto}</div>
-      <div class="small" style="margin-top:8px">
-        ${ev.medico_nome || "Sem médico"} · ${ev.criado_em}
-      </div>
-    `;
-    el.appendChild(div);
-  });
-}
-
-async function salvarProntuario() {
-  if (!canEditProntuario()) {
-    alert("Seu perfil não pode editar prontuário.");
-    return;
-  }
-
-  if (!prontuarioPacienteId) {
-    alert("Selecione um paciente primeiro.");
-    return;
-  }
-
-  const body = {
-    queixa_principal: document.getElementById("pr-queixa").value,
-    hda: document.getElementById("pr-hda").value,
-    hmp: document.getElementById("pr-hmp").value,
-    exame_fisico: document.getElementById("pr-exame-fisico").value,
-    exames: document.getElementById("pr-exames").value,
-    conduta: document.getElementById("pr-conduta").value,
-    cid: document.getElementById("pr-cid").value
-  };
-
-  const res = await fetch(`${API_PR}/${prontuarioPacienteId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader()
-    },
-    body: JSON.stringify(body)
+  // Role switch
+  $('#role-select').addEventListener('change', function() {
+    state.role = this.value;
+    const finNav = $('#nav-financeiro');
+    finNav.style.display = this.value === 'medico' ? 'none' : '';
   });
 
-  const json = await res.json();
-
-  if (!json.ok) {
-    alert(json.error || "Erro ao salvar prontuário");
-    return;
-  }
-
-  alert("Prontuário salvo com sucesso.");
-}
-
-async function salvarEvolucao() {
-  if (!canEditProntuario()) {
-    alert("Seu perfil não pode adicionar evolução.");
-    return;
-  }
-
-  if (!prontuarioPacienteId) {
-    alert("Selecione um paciente primeiro.");
-    return;
-  }
-
-  const texto = document.getElementById("pr-evolucao-texto").value.trim();
-
-  if (!texto) {
-    alert("Digite a evolução.");
-    return;
-  }
-
-  const res = await fetch(`${API_PR}/${prontuarioPacienteId}/evolucoes`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader()
-    },
-    body: JSON.stringify({ texto })
-  });
-
-  const json = await res.json();
-
-  if (!json.ok) {
-    alert(json.error || "Erro ao salvar evolução");
-    return;
-  }
-
-  document.getElementById("pr-evolucao-texto").value = "";
-  await abrirProntuario(prontuarioPacienteId, document.getElementById("prontuario-titulo").innerText.replace('Prontuário - ', ''));
-}
-
-document.getElementById("agenda-data").value =
-  new Date().toISOString().split("T")[0];
-
-document.getElementById("agenda-data").addEventListener("change", carregarAgenda);
-document.getElementById("agenda-medico-filtro").addEventListener("change", carregarAgenda);
-
-applyAuth();
-
-(async function init() {
-  await carregarMedicosNosSelects();
-  await carregarPacientes();
-  await carregarPacientesNosSelects();
-  await carregarAgenda();
-})();
+  // Init
+  navTo('pacientes');
+  loadPacientes();
+});
