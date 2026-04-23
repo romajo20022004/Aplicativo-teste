@@ -1,7 +1,7 @@
 # ClinicaApp 🏥
 
 Sistema de gestão de consultório médico — Cloudflare Pages + D1 + Workers Functions.    
-
+    
 ## Stack
 - **Frontend**: HTML/CSS/JS puro (sem frameworks)
 - **Backend**: Cloudflare Pages Functions (serverless)
