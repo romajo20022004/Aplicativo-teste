@@ -250,10 +250,43 @@
 
       <!-- Financeiro -->
       <div class="section" id="sec-financeiro">
-        <div class="coming-soon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          <p style="font-size:15px;font-weight:500">Módulo Financeiro</p>
-          <p style="font-size:13px;color:var(--sub)">Em desenvolvimento — usará os agendamentos realizados</p>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <input type="date" id="fin-data-ini" class="agenda-date-inp" />
+          <span style="font-size:12px;color:var(--sub)">até</span>
+          <input type="date" id="fin-data-fim" class="agenda-date-inp" />
+          <select class="filter-sel" id="fin-medico-sel" style="display:block">
+            <option value="">Todos os médicos</option>
+          </select>
+          <button class="btn" id="btn-sync" style="margin-left:auto">⟳ Importar realizados</button>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total receitas</div><div class="metric-val" style="color:var(--teal-mid)" id="fin-receita">—</div></div>
+          <div class="metric"><div class="metric-label">Total despesas</div><div class="metric-val" style="color:var(--coral-mid)" id="fin-despesa">—</div></div>
+          <div class="metric"><div class="metric-label">Resultado</div><div class="metric-val" style="color:var(--blue)" id="fin-resultado">—</div></div>
+          <div class="metric"><div class="metric-label">A receber</div><div class="metric-val" style="color:var(--amber-mid)" id="fin-pendente">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Receita por médico</span></div>
+            <div class="tbl-wrap"><table>
+              <thead><tr><th>Médico</th><th>Qtd</th><th>Total</th></tr></thead>
+              <tbody id="fin-med-tbody"><tr><td colspan="3" class="tbl-empty">Carregando...</td></tr></tbody>
+            </table></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Receita por convênio</span></div>
+            <div class="tbl-wrap"><table>
+              <thead><tr><th>Convênio</th><th>Qtd</th><th>Total</th></tr></thead>
+              <tbody id="fin-conv-tbody"><tr><td colspan="3" class="tbl-empty">Carregando...</td></tr></tbody>
+            </table></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Lançamentos</span></div>
+          <div class="tbl-wrap"><table>
+            <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Médico</th><th>Categoria</th><th>Status</th><th>Valor</th><th>Ações</th></tr></thead>
+            <tbody id="fin-lanc-tbody"><tr><td colspan="8" class="tbl-empty">Carregando...</td></tr></tbody>
+          </table></div>
         </div>
       </div>
 
