@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- v2 -->
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -258,6 +257,74 @@
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ Modal Lançamento ══ -->
+<div class="modal-overlay" id="modal-lanc-overlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-lanc-title">Novo Lançamento</span>
+      <button class="btn btn-sm" id="btn-cancel-lanc">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="fl-form" onsubmit="return false">
+        <div class="form-section">
+          <div class="form-section-title">Lançamento</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>Tipo <span class="req">*</span></label>
+              <select class="form-select" id="fl-tipo">
+                <option value="receita">Receita</option>
+                <option value="despesa">Despesa</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Data <span class="req">*</span></label>
+              <input type="date" id="fl-data" />
+            </div>
+            <div class="form-group span2"><label>Descrição <span class="req">*</span></label>
+              <input type="text" id="fl-descricao" placeholder="Ex: Consulta Dr. Silva, Aluguel, Material..." />
+            </div>
+            <div class="form-group"><label>Categoria</label>
+              <input type="text" id="fl-categoria" placeholder="Consulta, Aluguel, Material..." />
+            </div>
+            <div class="form-group"><label>Valor (R$) <span class="req">*</span></label>
+              <input type="number" id="fl-valor" placeholder="0,00" step="0.01" min="0" />
+            </div>
+            <div class="form-group"><label>Médico</label>
+              <select class="form-select" id="fl-medico">
+                <option value="">Geral (sem médico)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Forma de pagamento</label>
+              <select class="form-select" id="fl-forma">
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cartao_credito">Cartão de crédito</option>
+                <option value="cartao_debito">Cartão de débito</option>
+                <option value="pix">PIX</option>
+                <option value="transferencia">Transferência</option>
+                <option value="convenio">Convênio</option>
+                <option value="pendente">Pendente</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Status</label>
+              <select class="form-select" id="fl-status">
+                <option value="confirmado">Confirmado</option>
+                <option value="pendente">Pendente</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+            <div class="form-group span2"><label>Observações</label>
+              <textarea id="fl-obs" placeholder="Observações..."></textarea>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModalLanc()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-lanc">Salvar</button>
     </div>
   </div>
 </div>
