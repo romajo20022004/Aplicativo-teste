@@ -190,6 +190,8 @@ function navTo(page) {
   if (page === 'pacientes') { loadPacientes(); }
   if (page === 'medicos')   { loadMedicos(); }
   if (page === 'agenda')    { loadAgenda(); }
+  if (page === 'financeiro'){ loadFinanceiro(); }
+  if (page === 'usuarios')  { loadUsuarios(); }
 }
 
 // ══════════════════════════════════════════════
