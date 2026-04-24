@@ -12,14 +12,14 @@ export async function onRequestGet({ env }) {
 
 export async function onRequestPost({ env, request }) {
   try {
-    const { nome, crm, especialidade, telefone, email, cor, status } = await request.json();
+    const { nome, crm, especialidade, telefone, email, cor, status, ver_todos_pacientes } = await request.json();
     if (!nome || !crm || !especialidade)
       return Response.json({ ok: false, error: 'Nome, CRM e especialidade são obrigatórios' }, { status: 400 });
 
     const result = await env.DB.prepare(
-      `INSERT INTO medicos (nome, crm, especialidade, telefone, email, cor, status)
-       VALUES (?,?,?,?,?,?,?)`
-    ).bind(nome, crm, especialidade, telefone||'', email||'', cor||'#378ADD', status||'ativo').run();
+      `INSERT INTO medicos (nome, crm, especialidade, telefone, email, cor, status, ver_todos_pacientes)
+       VALUES (?,?,?,?,?,?,?,?)`
+    ).bind(nome, crm, especialidade, telefone||'', email||'', cor||'#378ADD', status||'ativo', ver_todos_pacientes||0).run();
 
     return Response.json({ ok: true, id: result.meta.last_row_id }, { status: 201 });
   } catch (e) {
