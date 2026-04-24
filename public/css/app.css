@@ -158,3 +158,15 @@ textarea { resize:vertical;min-height:60px; }
   .logo small,.role-area,.nav-item span { display:none; }
   .agenda-col { min-width:220px; }
 }
+
+/* ── Prontuário ── */
+.prnt-card {
+  background:#fff; border:0.5px solid var(--border);
+  border-radius:var(--radius-lg); padding:16px;
+  cursor:pointer; transition:box-shadow .15s;
+}
+.prnt-card:hover { border-color:var(--blue-mid); }
+.prnt-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.prnt-diag { font-size:13px; font-weight:500; color:var(--text); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+.prnt-queixa { font-size:12px; color:var(--sub); margin-bottom:6px; font-style:italic; }
+.prnt-prescricao { font-size:12px; color:var(--text); background:var(--gray-50); border-radius:6px; padding:8px 10px; border-left:3px solid var(--teal-mid); }
