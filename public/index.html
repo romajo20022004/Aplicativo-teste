@@ -291,6 +291,22 @@
         <div id="agenda-cols" class="agenda-cols"></div>
       </div>
 
+      <!-- Prontuário -->
+      <div class="section" id="sec-prontuario">
+        <div class="panel" style="margin-bottom:12px">
+          <div class="panel-head">
+            <div>
+              <div style="font-size:15px;font-weight:500" id="prnt-pac-nome">Paciente</div>
+              <div style="font-size:12px;color:var(--sub)" id="prnt-pac-info"></div>
+            </div>
+            <button class="btn btn-sm" onclick="navTo('pacientes')" style="margin-left:auto">← Voltar</button>
+          </div>
+        </div>
+        <div id="prnt-lista" style="display:flex;flex-direction:column;gap:12px">
+          <div class="tbl-empty" style="padding:32px;text-align:center">Carregando...</div>
+        </div>
+      </div>
+
       <!-- Usuários -->
       <div class="section" id="sec-usuarios">
         <div class="panel">
@@ -462,6 +478,77 @@
   </div>
 </div>
 
-<script src="/js/app.v4.js"></script>
+<!-- ══ Modal Prontuário ══ -->
+<div class="modal-overlay" id="modal-prnt-overlay">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-prnt-title">Nova Consulta</span>
+      <button class="btn btn-sm" id="btn-cancel-prnt">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="fp-form" onsubmit="return false">
+        <input type="hidden" id="fp-paciente" />
+
+        <!-- Dados gerais -->
+        <div class="form-section">
+          <div class="form-section-title">Dados da Consulta</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>Data <span class="req">*</span></label><input type="date" id="fp-data" /></div>
+            <div class="form-group"><label>Médico <span class="req">*</span></label>
+              <select class="form-select" id="fp-medico"><option value="">Selecione...</option></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anamnese -->
+        <div class="form-section">
+          <div class="form-section-title">Anamnese</div>
+          <div class="form-grid" style="grid-template-columns:1fr">
+            <div class="form-group"><label>Queixa principal</label><input type="text" id="fp-queixa" placeholder="Motivo da consulta..." /></div>
+            <div class="form-group"><label>História da doença atual</label><textarea id="fp-historia" placeholder="Descrição detalhada..." style="min-height:80px"></textarea></div>
+            <div class="form-group"><label>Antecedentes pessoais / familiares</label><textarea id="fp-antecedentes" placeholder="Doenças prévias, cirurgias, histórico familiar..." style="min-height:60px"></textarea></div>
+          </div>
+          <div class="form-grid form-grid-2" style="margin-top:12px">
+            <div class="form-group"><label>Medicamentos em uso</label><textarea id="fp-medicamentos" placeholder="Medicamentos, doses..." style="min-height:60px"></textarea></div>
+            <div class="form-group"><label>Alergias</label><textarea id="fp-alergias" placeholder="Alergias conhecidas..." style="min-height:60px"></textarea></div>
+          </div>
+        </div>
+
+        <!-- Exame físico -->
+        <div class="form-section">
+          <div class="form-section-title">Exame Físico</div>
+          <div class="form-grid" style="grid-template-columns:repeat(3,1fr);gap:12px">
+            <div class="form-group"><label>Peso (kg)</label><input type="number" id="fp-peso" placeholder="70.5" step="0.1" /></div>
+            <div class="form-group"><label>Altura (m)</label><input type="number" id="fp-altura" placeholder="1.70" step="0.01" /></div>
+            <div class="form-group"><label>Pressão arterial</label><input type="text" id="fp-pa" placeholder="120/80 mmHg" /></div>
+            <div class="form-group"><label>FC (bpm)</label><input type="number" id="fp-fc" placeholder="72" /></div>
+            <div class="form-group"><label>Temperatura (°C)</label><input type="number" id="fp-temp" placeholder="36.5" step="0.1" /></div>
+            <div class="form-group"><label>Saturação (%)</label><input type="number" id="fp-sat" placeholder="98" /></div>
+          </div>
+          <div class="form-group" style="margin-top:12px"><label>Exame físico geral</label><textarea id="fp-exame" placeholder="Descrição do exame físico..." style="min-height:80px"></textarea></div>
+        </div>
+
+        <!-- Diagnóstico e conduta -->
+        <div class="form-section">
+          <div class="form-section-title">Diagnóstico e Conduta</div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>Hipótese diagnóstica</label><input type="text" id="fp-hipotese" placeholder="Diagnóstico..." /></div>
+            <div class="form-group"><label>CID-10</label><input type="text" id="fp-cid" placeholder="Ex: J06.9" /></div>
+            <div class="form-group span2"><label>Conduta</label><textarea id="fp-conduta" placeholder="Conduta adotada..." style="min-height:60px"></textarea></div>
+            <div class="form-group span2"><label>Prescrição</label><textarea id="fp-prescricao" placeholder="Medicamentos prescritos, doses, posologia..." style="min-height:80px"></textarea></div>
+            <div class="form-group"><label>Retorno em (dias)</label><input type="number" id="fp-retorno" placeholder="30" min="1" /></div>
+            <div class="form-group"><label>Observações</label><textarea id="fp-obs" placeholder="Observações adicionais..."></textarea></div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModalProntuario()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-prnt">Salvar Consulta</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.v5.js"></script>
 </body>
 </html>
