@@ -115,7 +115,8 @@ function aplicarPermissoes() {
     if (medNav) medNav.style.display = 'none';
     if (usrNav) usrNav.style.display = 'none';
   } else if (p === 'secretaria') {
-    if (finNav) finNav.style.display = 'none';
+    if (finNav) finNav.style.display = '';   // VE financeiro (só leitura)
+    if (medNav) medNav.style.display = 'none';
     if (usrNav) usrNav.style.display = 'none';
   }
 }
@@ -621,13 +622,16 @@ document.addEventListener('DOMContentLoaded', () => {
   $$('.nav-item[data-page]').forEach(btn => btn.addEventListener('click', ()=>navTo(btn.dataset.page)));
 
   $('#btn-add').addEventListener('click', () => {
-    // Check sec-prontuario first (it has no nav-item)
-    if(document.getElementById('sec-prontuario')?.classList.contains('active')) { newProntuario(); return; }
+    const sec = auth.usuario?.perfil === 'secretaria';
+    if(document.getElementById('sec-prontuario')?.classList.contains('active')) {
+      if(!sec) newProntuario();
+      return;
+    }
     const active = $$('.nav-item.active')[0]?.dataset.page;
-    if(active==='pacientes')  newPaciente();
+    if(active==='pacientes')  { if(!sec) newPaciente(); }
     if(active==='medicos')    newMedico();
     if(active==='agenda')     newAgendamento();
-    if(active==='financeiro') newLancamento();
+    if(active==='financeiro') { if(!sec) newLancamento(); }
     if(active==='usuarios')   newUsuario();
   });
 
@@ -1060,7 +1064,7 @@ function renderProntuarios() {
           </div>
         </div>
         <div class="flex-row">
-          ${podeEditar ? `<button class="btn btn-sm" onclick="event.stopPropagation();editProntuario(${p.id})">✎ Editar</button>
+          ${(podeEditar && auth.usuario?.perfil !== 'secretaria') ? `<button class="btn btn-sm" onclick="event.stopPropagation();editProntuario(${p.id})">✎ Editar</button>
           <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();confirmDeleteProntuario(${p.id})">🗑</button>` : `<span style="font-size:11px;color:var(--sub);font-style:italic">Só leitura</span>`}
         </div>
       </div>
