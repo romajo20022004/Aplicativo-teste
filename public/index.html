@@ -335,7 +335,8 @@
           <select class="filter-sel" id="fin-medico-sel" style="display:block">
             <option value="">Todos os médicos</option>
           </select>
-          <button class="btn" id="btn-sync" style="margin-left:auto">⟳ Importar realizados</button>
+          <button class="btn" id="btn-sync">⟳ Importar realizados</button>
+          <button class="btn" onclick="imprimirFinanceiro()" style="margin-left:auto" title="Imprimir relatório geral">🖨️ Imprimir geral</button>
         </div>
         <div class="metrics">
           <div class="metric"><div class="metric-label">Total receitas</div><div class="metric-val" style="color:var(--teal-mid)" id="fin-receita">—</div></div>
@@ -347,7 +348,7 @@
           <div class="panel">
             <div class="panel-head"><span class="panel-title">Receita por médico</span></div>
             <div class="tbl-wrap"><table>
-              <thead><tr><th>Médico</th><th>Qtd</th><th>Total</th></tr></thead>
+              <thead><tr><th>Médico</th><th>Qtd</th><th>Total</th><th></th></tr></thead>
               <tbody id="fin-med-tbody"><tr><td colspan="3" class="tbl-empty">Carregando...</td></tr></tbody>
             </table></div>
           </div>
@@ -557,6 +558,6 @@
   </div>
 </div>
 
-<script src="/js/app.v7.js"></script>
+<script src="/js/app.v8.js"></script>
 </body>
 </html>
