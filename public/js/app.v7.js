@@ -1016,6 +1016,11 @@ async function confirmDeleteUsuario(id, nome) {
 const prontState = { pacienteAtual: null, prontuarios: [] };
 
 async function abrirProntuario(pacienteId) {
+  // LGPD: secretaria não tem acesso ao prontuário
+  if (auth.usuario?.perfil === 'secretaria') {
+    toast('Acesso negado — LGPD: secretaria não pode acessar prontuários', 'error');
+    return;
+  }
   const pac = state.pacientes.find(p => p.id == pacienteId);
   if (!pac) return;
   prontState.pacienteAtual = pac;
@@ -1080,6 +1085,11 @@ function renderProntuarios() {
 function verProntuario(id) {
   const p = prontState.prontuarios.find(x => x.id === id);
   if (!p) return;
+  // Secretaria vê mas não edita
+  if (auth.usuario?.perfil === 'secretaria') {
+    toast('Prontuário — apenas leitura para secretaria', 'error');
+    return;
+  }
   editProntuario(id);
 }
 
@@ -1190,6 +1200,10 @@ async function confirmDeleteProntuario(id) {
 
 // Abrir prontuário pela agenda
 function abrirProntuarioAgendamento(agendamentoId) {
+  if (auth.usuario?.perfil === 'secretaria') {
+    toast('Acesso negado — LGPD: secretaria não pode acessar prontuários', 'error');
+    return;
+  }
   const ag = state.agendamentos.find(a => a.id === agendamentoId);
   if (!ag) return;
   const pac = state.pacientes.find(p => p.id === ag.paciente_id);
