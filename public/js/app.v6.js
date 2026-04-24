@@ -1209,11 +1209,9 @@ async function enviarAgendaMedico(medicoId) {
       msg += `${statusEmoji[ag.status_agenda]||'📋'} *${ag.hora}* — ${ag.paciente_nome}
 `;
       msg += `   ${ag.tipo} · ${ag.duracao_min}min`;
-      if (ag.status_pgto === 'pago') msg += ' · ✅ Pago';
-      else if (ag.status_pgto === 'pendente') msg += ' · ⏳ Pendente';
-      msg += '
-
-';
+      if (ag.status_pgto === 'pago') msg += ' - Pago';
+      else if (ag.status_pgto === 'pendente') msg += ' - Pendente';
+      msg += '\n\n';
     });
   }
 
@@ -1294,8 +1292,7 @@ async function enviarAgendaCompleta() {
       msg += `   🕐 ${ag.hora} — ${ag.paciente_nome} (${ag.tipo})
 `;
     });
-    msg += '
-';
+    msg += '\n';
   });
 
   msg += `_Enviado pelo ClinicaApp_`;
