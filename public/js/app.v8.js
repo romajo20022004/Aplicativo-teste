@@ -745,6 +745,7 @@ async function loadFinanceiro() {
   const res = await API.get('/api/financeiro?' + params);
   if (!res.ok) { toast('Erro ao carregar financeiro', 'error'); return; }
   finState.dados = res;
+  finState.lancamentos = res.lancamentos || [];
   renderFinanceiro();
   popularFinMedicos();
 }
