@@ -1,10 +1,14 @@
+// functions/api/pacientes.js
 export async function onRequestGet({ env, request }) {
   try {
     const url = new URL(request.url);
-    const search = url.searchParams.get('q') || '';
-    const status = url.searchParams.get('status') || '';
+    const search   = url.searchParams.get('q') || '';
+    const status   = url.searchParams.get('status') || '';
+    const medico_id= url.searchParams.get('medico_id') || '';
+
     let query = 'SELECT * FROM pacientes WHERE 1=1';
     const params = [];
+
     if (search) {
       query += ' AND (nome LIKE ? OR cpf LIKE ? OR telefone LIKE ?)';
       const term = `%${search}%`;
@@ -14,6 +18,16 @@ export async function onRequestGet({ env, request }) {
       query += ' AND status = ?';
       params.push(status);
     }
+    // Filtrar pacientes que já tiveram consulta com este médico
+    if (medico_id) {
+      query += ` AND id IN (
+        SELECT DISTINCT paciente_id FROM agendamentos WHERE medico_id = ?
+        UNION
+        SELECT DISTINCT paciente_id FROM prontuarios WHERE medico_id = ?
+      )`;
+      params.push(medico_id, medico_id);
+    }
+
     query += ' ORDER BY nome ASC';
     const result = await env.DB.prepare(query).bind(...params).all();
     return Response.json({ ok: true, data: result.results });
