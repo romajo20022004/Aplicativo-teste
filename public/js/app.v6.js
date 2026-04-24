@@ -1166,7 +1166,7 @@ function abrirProntuarioAgendamento(agendamentoId) {
 
 function limparTelefone(tel) {
   // Remove tudo exceto números e adiciona 55 (Brasil)
-  const nums = tel.replace(/\D/g, '');
+  const nums = tel.replace(/[^0-9]/g, '');
   if (nums.startsWith('55')) return nums;
   return '55' + nums;
 }
