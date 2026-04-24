@@ -104,6 +104,9 @@ function aplicarPermissoes() {
   const av = document.getElementById('user-avatar');
   if(av) { const parts = auth.usuario.nome.split(' '); av.textContent = parts.slice(0,2).map(w=>w[0].toUpperCase()).join(''); }
   document.getElementById('user-perfil').textContent = p.charAt(0).toUpperCase() + p.slice(1);
+  // Esconder seletor de perfil para não-admin
+  const roleArea = document.querySelector('.role-area');
+  if(roleArea) roleArea.style.display = p === 'admin' ? '' : 'none';
   const finNav = document.getElementById('nav-financeiro');
   const medNav = document.getElementById('nav-medicos');
   const usrNav = document.getElementById('nav-usuarios');
@@ -756,8 +759,12 @@ function renderFinanceiro() {
   // Tabela por médico
   const tbMed = document.getElementById('fin-med-tbody');
   if (tbMed) {
-    const maxVal = Math.max(...(d.porMedico||[]).map(m=>m.total), 1);
-    tbMed.innerHTML = (d.porMedico||[]).map(m => `
+    // Médico vê apenas sua própria linha
+    const medList = auth.usuario?.perfil === 'medico' && auth.usuario?.medico_id
+      ? (d.porMedico||[]).filter(m => m.nome === auth.usuario.nome)
+      : (d.porMedico||[]);
+    const maxVal = Math.max(...medList.map(m=>m.total), 1);
+    tbMed.innerHTML = medList.map(m => `
       <tr>
         <td><div class="flex-row">
           <div class="av" style="background:${m.cor||'#E6F1FB'}22;color:${m.cor||'#185FA5'};font-size:10px">${initials(m.nome)}</div>
