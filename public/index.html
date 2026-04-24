@@ -80,6 +80,13 @@
             <div class="form-group"><label>E-mail</label><input type="email" id="fm-email" placeholder="medico@clinica.com" /></div>
             <div class="form-group"><label>Cor na agenda</label><input type="color" id="fm-cor" value="#185FA5" style="height:38px;padding:2px 4px" /></div>
             <div class="form-group"><label>Status</label><select class="form-select" id="fm-status"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+            <div class="form-group span2">
+              <label>Permissão de pacientes</label>
+              <select class="form-select" id="fm-ver-todos">
+                <option value="0">Apenas seus próprios pacientes</option>
+                <option value="1">Ver todos os pacientes (encaminhamentos)</option>
+              </select>
+            </div>
           </div>
         </div>
       </form>
@@ -550,6 +557,6 @@
   </div>
 </div>
 
-<script src="/js/app.v6.js"></script>
+<script src="/js/app.v7.js"></script>
 </body>
 </html>
