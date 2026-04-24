@@ -924,9 +924,13 @@ function popularFinMedicos() {
 async function loadUsuarios() {
   // Garantir que médicos estão carregados para mostrar vínculo
   if (!state.medicos.length) await loadMedicos();
-  const res = await API.get('/api/usuarios');
-  if (!res.ok) { toast('Erro ao carregar usuários', 'error'); return; }
-  renderUsuarios(res.data);
+  // Usar fetch direto pois a API de usuarios não requer token
+  try {
+    const r = await fetch('/api/usuarios');
+    const res = await r.json();
+    if (!res.ok) { toast('Erro ao carregar usuários', 'error'); return; }
+    renderUsuarios(res.data);
+  } catch(e) { toast('Erro ao carregar usuários', 'error'); }
 }
 
 function renderUsuarios(lista) {
