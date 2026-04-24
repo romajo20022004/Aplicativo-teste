@@ -922,6 +922,8 @@ function popularFinMedicos() {
 // USUÁRIOS
 // ══════════════════════════════════════════════
 async function loadUsuarios() {
+  // Garantir que médicos estão carregados para mostrar vínculo
+  if (!state.medicos.length) await loadMedicos();
   const res = await API.get('/api/usuarios');
   if (!res.ok) { toast('Erro ao carregar usuários', 'error'); return; }
   renderUsuarios(res.data);
