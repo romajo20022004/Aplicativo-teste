@@ -600,13 +600,14 @@ document.addEventListener('DOMContentLoaded', () => {
   $$('.nav-item[data-page]').forEach(btn => btn.addEventListener('click', ()=>navTo(btn.dataset.page)));
 
   $('#btn-add').addEventListener('click', () => {
+    // Check sec-prontuario first (it has no nav-item)
+    if(document.getElementById('sec-prontuario')?.classList.contains('active')) { newProntuario(); return; }
     const active = $$('.nav-item.active')[0]?.dataset.page;
     if(active==='pacientes')  newPaciente();
     if(active==='medicos')    newMedico();
     if(active==='agenda')     newAgendamento();
     if(active==='financeiro') newLancamento();
-    if(active==='usuarios')    newUsuario();
-    if(active==='prontuario')  newProntuario();
+    if(active==='usuarios')   newUsuario();
   });
 
   let searchTimer;
