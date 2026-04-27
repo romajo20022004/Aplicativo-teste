@@ -1557,7 +1557,57 @@ async function saveProntuario() {
   btn.disabled = false; btn.textContent = 'Salvar';
 
   if (!res.ok) { toast(res.error || 'Erro', 'error'); return; }
-  toast(state.editingId ? 'Consulta atualizada!' : 'Consulta registrada!');
+
+  // ── Se nova consulta, verificar se já existe agendamento realizado no dia ──
+  if (!state.editingId) {
+    const pac = prontState.pacienteAtual;
+    const agExistente = state.agendamentos.find(a =>
+      a.paciente_id === data.paciente_id &&
+      a.medico_id === data.medico_id &&
+      a.data === data.data_consulta &&
+      a.status_agenda === 'realizado'
+    );
+
+    if (!agExistente) {
+      // Criar agendamento automático como "realizado"
+      const agRes = await API.post('/api/agendamentos', {
+        paciente_id:   data.paciente_id,
+        medico_id:     data.medico_id,
+        data:          data.data_consulta,
+        hora:          '08:00',
+        duracao_min:   30,
+        tipo:          'Consulta',
+        valor:         pac?.valor_consulta || 0,
+        status_pgto:   'pendente',
+        status_agenda: 'realizado',
+        observacoes:   'Gerado automaticamente via prontuário'
+      });
+
+      if (agRes.ok) {
+        // Criar lançamento financeiro pendente
+        await API.post('/api/financeiro', {
+          tipo:          'receita',
+          categoria:     pac?.convenio || 'Particular',
+          descricao:     `Consulta — ${pac?.nome || 'Paciente'} (Consulta)`,
+          valor:         pac?.valor_consulta || 0,
+          data:          data.data_consulta,
+          medico_id:     data.medico_id,
+          agendamento_id: agRes.id,
+          status:        'pendente',
+          forma_pgto:    'pendente',
+          observacoes:   'Gerado automaticamente via prontuário'
+        });
+        toast('Consulta registrada! Agendamento e lançamento financeiro criados automaticamente.', 'success');
+      } else {
+        toast('Consulta registrada! (Atenção: lançamento financeiro não foi criado)', 'error');
+      }
+    } else {
+      toast('Consulta registrada!');
+    }
+  } else {
+    toast('Consulta atualizada!');
+  }
+
   closeModalProntuario();
   if (prontState.pacienteAtual) loadProntuarios(prontState.pacienteAtual.id);
 }
