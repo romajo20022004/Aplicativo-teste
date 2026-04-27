@@ -104,21 +104,19 @@ function aplicarPermissoes() {
   const av = document.getElementById('user-avatar');
   if(av) { const parts = auth.usuario.nome.split(' '); av.textContent = parts.slice(0,2).map(w=>w[0].toUpperCase()).join(''); }
   document.getElementById('user-perfil').textContent = p.charAt(0).toUpperCase() + p.slice(1);
-  // Esconder seletor de perfil para não-admin
   const roleArea = document.querySelector('.role-area');
   if(roleArea) roleArea.style.display = p === 'admin' ? '' : 'none';
-  // Mostrar botões de backup só para admin
   const backupBtns = document.getElementById('backup-buttons');
   if(backupBtns) backupBtns.style.display = p === 'admin' ? 'flex' : 'none';
   const finNav = document.getElementById('nav-financeiro');
   const medNav = document.getElementById('nav-medicos');
   const usrNav = document.getElementById('nav-usuarios');
   if (p === 'medico') {
-    if (finNav) finNav.style.display = ''; // medico VE financeiro (filtrado)
+    if (finNav) finNav.style.display = '';
     if (medNav) medNav.style.display = 'none';
     if (usrNav) usrNav.style.display = 'none';
   } else if (p === 'secretaria') {
-    if (finNav) finNav.style.display = '';   // VE financeiro (só leitura)
+    if (finNav) finNav.style.display = '';
     if (medNav) medNav.style.display = 'none';
     if (usrNav) usrNav.style.display = 'none';
   }
@@ -137,7 +135,6 @@ async function loadDashboard() {
   const res = await API.get('/api/dashboard?' + params);
   if (!res.ok) return;
 
-  // Métricas
   const mTotal = document.getElementById('dash-total-pac');
   const mHoje  = document.getElementById('dash-consultas-hoje');
   const mRec   = document.getElementById('dash-receita-mes');
@@ -148,7 +145,6 @@ async function loadDashboard() {
   if (mRec)   mRec.textContent   = fmt_brl(res.receitaMes);
   if (mPend)  mPend.textContent  = res.pendencias;
 
-  // Agenda de hoje
   const agTbody = document.getElementById('dash-agenda-tbody');
   if (agTbody) {
     if (!res.agendaHoje.length) {
@@ -168,7 +164,6 @@ async function loadDashboard() {
     }
   }
 
-  // Aniversariantes
   const anivEl = document.getElementById('dash-aniversariantes');
   if (anivEl) {
     if (!res.aniversariantes.length) {
@@ -189,7 +184,6 @@ async function loadDashboard() {
     }
   }
 
-  // Últimos pacientes
   const ultEl = document.getElementById('dash-ultimos-pac');
   if (ultEl) {
     if (!res.ultimosPacientes.length) {
@@ -215,12 +209,9 @@ async function verificarBackup() {
     const res = await fetch('/api/backup', { method: 'POST' });
     const data = await res.json();
     if (!data.ok) return;
-
     const agora = new Date();
     const hora = agora.getHours();
     const backupHoje = data.backup_hoje;
-
-    // Aviso às 16h se não fez backup hoje
     if (hora >= 16 && !backupHoje) {
       mostrarAvisoBackup(data.ultimo_backup);
     }
@@ -228,11 +219,9 @@ async function verificarBackup() {
 }
 
 function mostrarAvisoBackup(ultimoBackup) {
-  // Não mostrar se já foi fechado hoje
   const fechado = localStorage.getItem('backup_aviso_fechado');
   const hoje = new Date().toISOString().slice(0,10);
   if (fechado === hoje) return;
-
   const aviso = document.createElement('div');
   aviso.id = 'backup-aviso';
   aviso.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#fff;border:1.5px solid #856404;border-radius:12px;padding:16px 20px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:1000;max-width:320px;';
@@ -262,17 +251,14 @@ function fecharAvisoBackup() {
 }
 
 function fazerBackup(formato) {
-  const hoje = new Date().toISOString().slice(0,10);
   window.open('/api/backup?formato=' + formato, '_blank');
   fecharAvisoBackup();
   toast('Backup ' + formato.toUpperCase() + ' iniciado!');
 }
 
-// Verificar backup ao iniciar e a cada hora
 function iniciarVerificacaoBackup() {
   if (auth.usuario?.perfil !== 'admin') return;
   verificarBackup();
-  // Verificar a cada 30 minutos
   setInterval(verificarBackup, 30 * 60 * 1000);
 }
 
@@ -304,36 +290,28 @@ function recarregarPaginaAtual() {
 }
 
 function iniciarRefreshAutomatico() {
-  // Auto-refresh agenda a cada 60 segundos
   if (refreshState.timer) clearInterval(refreshState.timer);
   refreshState.timer = setInterval(() => {
     const active = document.querySelector('.nav-item.active')?.dataset?.page;
     if (active === 'agenda') recarregarPaginaAtual();
   }, 60000);
 
-  // Refresh ao focar na aba (quando usuário volta de outra aba)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       const diff = refreshState.lastUpdate ? (new Date() - refreshState.lastUpdate) / 1000 : 999;
-      if (diff > 30) { // Só atualiza se faz mais de 30s
-        recarregarPaginaAtual();
-      }
+      if (diff > 30) { recarregarPaginaAtual(); }
     }
   });
 
-  // Refresh ao focar na janela
   window.addEventListener('focus', () => {
     const diff = refreshState.lastUpdate ? (new Date() - refreshState.lastUpdate) / 1000 : 999;
-    if (diff > 30) {
-      recarregarPaginaAtual();
-    }
+    if (diff > 30) { recarregarPaginaAtual(); }
   });
 
   atualizarUltimaAtualizacao();
 }
 
 async function iniciarApp() {
-  // If medico, load medico record to get ver_todos_pacientes
   if (auth.usuario?.perfil === 'medico' && auth.usuario?.medico_id) {
     const res = await API.get('/api/medicos/' + auth.usuario.medico_id);
     if (res.ok) {
@@ -418,7 +396,6 @@ async function loadPacientes() {
   const params = new URLSearchParams();
   if (q) params.set('q', q);
   if (status) params.set('status', status);
-  // Médico: filtrar por seus pacientes (a menos que tenha permissão de ver todos)
   if (auth.usuario?.perfil === 'medico' && auth.usuario?.medico_id && !auth.usuario?.ver_todos_pacientes) {
     params.set('medico_id', auth.usuario.medico_id);
   }
@@ -465,7 +442,6 @@ function convenioBadge(c) {
   return map[c]||'badge-blue';
 }
 
-// Modal paciente
 function openModal(title) { $('#modal-title').textContent=title; $('#modal-overlay').classList.add('open'); document.body.style.overflow='hidden'; }
 function closeModal() { $('#modal-overlay').classList.remove('open'); document.body.style.overflow=''; state.editingId=null; state.editingType=null; resetForm('#pac-form'); }
 
@@ -562,7 +538,6 @@ function renderMedicos() {
       </div></td>
     </tr>`).join('');
 
-  // Atualizar selects de médico nos formulários
   const selects = $$('select.medico-select');
   selects.forEach(sel => {
     const val = sel.value;
@@ -573,7 +548,6 @@ function renderMedicos() {
 }
 
 function newMedico() { state.editingId=null; state.editingType='medico'; resetForm('#med-form'); openModalMedico('Novo Médico'); }
-
 function openModalMedico(title) { $('#modal-med-title').textContent=title; $('#modal-med-overlay').classList.add('open'); document.body.style.overflow='hidden'; }
 function closeModalMedico() { $('#modal-med-overlay').classList.remove('open'); document.body.style.overflow=''; state.editingId=null; }
 
@@ -630,7 +604,6 @@ async function loadAgenda() {
 function renderAgenda() {
   const container = $('#agenda-cols');
   if(!container) return;
-  // Médico vê apenas sua própria coluna na agenda
   const medAtivos = auth.usuario?.perfil === 'medico' && auth.usuario?.medico_id
     ? state.medicos.filter(m=>m.status==='ativo' && m.id === auth.usuario.medico_id)
     : state.medicos.filter(m=>m.status==='ativo');
@@ -696,7 +669,6 @@ function newAgendamento() {
   state.editingId=null; state.editingType='agendamento';
   resetForm('#ag-form');
   $('#fa-data').value = state.agendaDate;
-  // Popular selects
   $('#fa-paciente').innerHTML = '<option value="">Selecione o paciente...</option>' +
     state.pacientes.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
   $('#fa-medico').innerHTML = '<option value="">Selecione o médico...</option>' +
@@ -707,7 +679,6 @@ function newAgendamento() {
 function openModalAgendamento(title) { $('#modal-ag-title').textContent=title; $('#modal-ag-overlay').classList.add('open'); document.body.style.overflow='hidden'; }
 function closeModalAgendamento() { $('#modal-ag-overlay').classList.remove('open'); document.body.style.overflow=''; state.editingId=null; }
 
-// Ao selecionar paciente, preencher valor automaticamente
 function onPacienteSelect(val) {
   const pac = state.pacientes.find(p=>p.id==val);
   if(pac && !$('#fa-valor').value) $('#fa-valor').value = pac.valor_consulta||'';
@@ -751,7 +722,6 @@ async function saveAgendamento() {
   if(!data.paciente_id||!data.medico_id||!$('#fa-data').value) { toast('Paciente, médico e data são obrigatórios','error'); return; }
   const btn=$('#btn-save-ag'); btn.disabled=true; btn.innerHTML='<div class="spinner"></div>';
 
-  // Verificar se era realizado antes (para não duplicar lançamento)
   const eraRealizado = state.editingId ? (state._agendamentoStatusAnterior === 'realizado') : false;
   const ficouRealizado = data.status_agenda === 'realizado';
 
@@ -763,7 +733,6 @@ async function saveAgendamento() {
   const agId = state.editingId || res.id;
 
   if(ficouRealizado && !eraRealizado) {
-    // Novo lançamento — consulta marcada como realizada pela primeira vez
     await API.post('/api/financeiro', {
       tipo: 'receita',
       categoria: pac?.convenio || 'Particular',
@@ -778,32 +747,23 @@ async function saveAgendamento() {
     });
     toast('Consulta realizada! Lançamento criado no financeiro.');
   } else if(ficouRealizado && eraRealizado && state.editingId) {
-    // Já era realizado — buscar lançamento vinculado e atualizar valor/status
     const lancRes = await API.get('/api/financeiro?data_ini=2020-01-01&data_fim=2099-12-31');
     if(lancRes.ok) {
       const lanc = lancRes.lancamentos?.find(l=>l.agendamento_id===state.editingId);
       if(lanc) {
         await API.put('/api/financeiro/'+lanc.id, {
-          tipo: lanc.tipo,
-          categoria: lanc.categoria,
-          descricao: lanc.descricao,
-          valor: data.valor,
-          data: lanc.data,
-          medico_id: lanc.medico_id,
+          tipo: lanc.tipo, categoria: lanc.categoria, descricao: lanc.descricao,
+          valor: data.valor, data: lanc.data, medico_id: lanc.medico_id,
           status: data.status_pgto === 'pago' ? 'confirmado' : 'pendente',
           forma_pgto: data.status_pgto === 'pago' ? 'dinheiro' : 'pendente',
           observacoes: lanc.observacoes||''
         });
         toast('Agendamento e lançamento financeiro atualizados!');
       } else {
-        // Não tinha lançamento ainda — cria um novo
         await API.post('/api/financeiro', {
-          tipo: 'receita',
-          categoria: pac?.convenio || 'Particular',
+          tipo: 'receita', categoria: pac?.convenio || 'Particular',
           descricao: `Consulta — ${pac?.nome || 'Paciente'} (${data.tipo})`,
-          valor: data.valor,
-          data: data.data,
-          medico_id: data.medico_id,
+          valor: data.valor, data: data.data, medico_id: data.medico_id,
           agendamento_id: agId,
           status: data.status_pgto === 'pago' ? 'confirmado' : 'pendente',
           forma_pgto: data.status_pgto === 'pago' ? 'dinheiro' : 'pendente',
@@ -858,22 +818,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const fs = document.getElementById('filter-status');
   if(fs) fs.addEventListener('change', loadPacientes);
 
-  // Modal paciente
   $('#btn-save').addEventListener('click', savePaciente);
   $('#btn-cancel').addEventListener('click', closeModal);
   $('#modal-overlay').addEventListener('click', e=>{ if(e.target===$('#modal-overlay')) closeModal(); });
 
-  // Modal médico
   $('#btn-save-med').addEventListener('click', saveMedico);
   $('#btn-cancel-med').addEventListener('click', closeModalMedico);
   $('#modal-med-overlay').addEventListener('click', e=>{ if(e.target===$('#modal-med-overlay')) closeModalMedico(); });
 
-  // Modal agendamento
   $('#btn-save-ag').addEventListener('click', saveAgendamento);
   $('#btn-cancel-ag').addEventListener('click', closeModalAgendamento);
   $('#modal-ag-overlay').addEventListener('click', e=>{ if(e.target===$('#modal-ag-overlay')) closeModalAgendamento(); });
 
-  // Agenda nav
   document.getElementById('fin-data-ini')?.addEventListener('change', function(){ finState.data_ini=this.value; loadFinanceiro(); });
   document.getElementById('fin-data-fim')?.addEventListener('change', function(){ finState.data_fim=this.value; loadFinanceiro(); });
   document.getElementById('fin-medico-sel')?.addEventListener('change', function(){ finState.medico_id=this.value; loadFinanceiro(); });
@@ -892,18 +848,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-agenda-hoje')?.addEventListener('click', ()=>{ state.agendaDate=new Date().toISOString().slice(0,10); loadAgenda(); });
   document.getElementById('agenda-date-input')?.addEventListener('change', function(){ state.agendaDate=this.value; loadAgenda(); });
 
-  // Máscaras
   $('#f-cpf').addEventListener('input', function(){ this.value=maskCPF(this.value); });
   $('#f-telefone').addEventListener('input', function(){ this.value=maskPhone(this.value); });
   $('#f-cep').addEventListener('input', function(){ this.value=maskCEP(this.value); if(this.value.replace(/\D/g,'').length===8) lookupCEP(this.value); });
 
-  // Role switch
   $('#role-select').addEventListener('change', function(){
     state.role=this.value;
     $('#nav-financeiro').style.display=this.value==='medico'?'none':'';
   });
 
-  // Verificar autenticação
   if (auth.token && auth.usuario) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'flex';
@@ -913,7 +866,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('app-screen').style.display = 'none';
   }
 
-  // Login form
   document.getElementById('btn-login')?.addEventListener('click', () => {
     const email = document.getElementById('login-email').value.trim();
     const senha = document.getElementById('login-senha').value;
@@ -930,7 +882,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(e.target === document.getElementById('modal-senha-overlay')) fecharTrocarSenha();
   });
 
-  // Init financeiro dates
   const today = new Date().toISOString().slice(0,10);
   const firstDay = today.slice(0,7) + '-01';
   const elIni = document.getElementById('fin-data-ini');
@@ -957,7 +908,6 @@ async function loadFinanceiro() {
     data_ini: finState.data_ini,
     data_fim: finState.data_fim,
   });
-  // Médico sempre vê apenas seus lançamentos
   if (auth.usuario?.perfil === 'medico' && auth.usuario?.medico_id) {
     params.set('medico_id', auth.usuario.medico_id);
     document.getElementById('fin-medico-sel').style.display = 'none';
@@ -978,16 +928,13 @@ function renderFinanceiro() {
   if (!d) return;
   const r = d.resumo;
 
-  // Métricas
   document.getElementById('fin-receita').textContent   = fmt_brl(r.total_receita || 0);
   document.getElementById('fin-despesa').textContent   = fmt_brl(r.total_despesa || 0);
   document.getElementById('fin-resultado').textContent = fmt_brl((r.total_receita||0) - (r.total_despesa||0));
   document.getElementById('fin-pendente').textContent  = fmt_brl(r.receita_pendente || 0);
 
-  // Tabela por médico
   const tbMed = document.getElementById('fin-med-tbody');
   if (tbMed) {
-    // Médico vê apenas sua própria linha
     const medList = auth.usuario?.perfil === 'medico' && auth.usuario?.medico_id
       ? (d.porMedico||[]).filter(m => m.nome === auth.usuario.nome)
       : (d.porMedico||[]);
@@ -1011,7 +958,6 @@ function renderFinanceiro() {
       </tr>`).join('') || '<tr><td colspan="4" class="tbl-empty">Nenhum dado</td></tr>';
   }
 
-  // Tabela por convênio
   const tbConv = document.getElementById('fin-conv-tbody');
   if (tbConv) {
     tbConv.innerHTML = (d.porConvenio||[]).map(c => `
@@ -1022,7 +968,6 @@ function renderFinanceiro() {
       </tr>`).join('') || '<tr><td colspan="3" class="tbl-empty">Nenhum dado</td></tr>';
   }
 
-  // Tabela lançamentos
   const tbLanc = document.getElementById('fin-lanc-tbody');
   if (tbLanc) {
     tbLanc.innerHTML = (d.lancamentos||[]).map(l => `
@@ -1042,12 +987,10 @@ function renderFinanceiro() {
   }
 }
 
-// Modal lançamento
 function newLancamento() {
   state.editingId = null; state.editingType = 'lancamento';
   document.getElementById('fl-form').reset();
   document.getElementById('fl-data').value = new Date().toISOString().slice(0,10);
-  // popular médicos
   document.getElementById('fl-medico').innerHTML =
     '<option value="">Geral (sem médico)</option>' +
     state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
@@ -1125,7 +1068,6 @@ async function syncAgendamentos() {
   loadFinanceiro();
 }
 
-// Popular select médicos no financeiro quando carregar
 function popularFinMedicos() {
   const sel = document.getElementById('fin-medico-sel');
   if (!sel) return;
@@ -1136,12 +1078,213 @@ function popularFinMedicos() {
 }
 
 // ══════════════════════════════════════════════
+// IMPRESSÃO FINANCEIRO — CORRIGIDA
+// ══════════════════════════════════════════════
+function imprimirFinanceiro(medicoId) {
+  const ini = document.getElementById('fin-data-ini').value;
+  const fim = document.getElementById('fin-data-fim').value;
+  const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
+  const fmtBRL  = v => Number(v||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+
+  let lancs = finState.lancamentos || [];
+  let titulo = 'Relatório Financeiro Geral';
+  let subtitulo = '';
+
+  if (medicoId) {
+    const med = state.medicos.find(m => m.id == medicoId);
+    lancs = lancs.filter(l => l.medico_id == medicoId);
+    titulo = 'Relatório Financeiro — ' + (med ? med.nome : '');
+    subtitulo = med ? med.especialidade : '';
+  }
+
+  const receitas  = lancs.filter(l => l.tipo === 'receita');
+  const despesas  = lancs.filter(l => l.tipo === 'despesa');
+  const totalRec  = receitas.reduce((s,l) => s + (l.valor||0), 0);
+  const totalDesp = despesas.reduce((s,l) => s + (l.valor||0), 0);
+  const resultado = totalRec - totalDesp;
+  const pendente  = lancs.filter(l=>l.status==='pendente').reduce((s,l)=>s+(l.valor||0),0);
+
+  // Agrupamentos
+  const porMedico = {};
+  receitas.forEach(l => {
+    const nome = l.medico_nome || 'Sem médico';
+    if (!porMedico[nome]) porMedico[nome] = { qtd:0, total:0, pacientes:[] };
+    porMedico[nome].qtd++;
+    porMedico[nome].total += l.valor||0;
+    if (l.descricao && !porMedico[nome].pacientes.includes(l.descricao))
+      porMedico[nome].pacientes.push(l.descricao);
+  });
+
+  const porConvenio = {};
+  receitas.forEach(l => {
+    const cat = l.categoria || 'Particular';
+    if (!porConvenio[cat]) porConvenio[cat] = { qtd:0, total:0 };
+    porConvenio[cat].qtd++;
+    porConvenio[cat].total += l.valor||0;
+  });
+
+  const rowsMedico = Object.entries(porMedico).map(([nome, d]) =>
+    `<tr><td>${nome}</td><td style="text-align:center">${d.qtd}</td><td>${fmtBRL(d.total)}</td><td>${d.pacientes.slice(0,3).join(', ')}${d.pacientes.length>3?' +' + (d.pacientes.length-3) + ' mais':''}</td></tr>`
+  ).join('') || '<tr><td colspan="4" style="color:#aaa;text-align:center;padding:12px">Nenhum dado</td></tr>';
+
+  const rowsConvenio = Object.entries(porConvenio).map(([cat, d]) =>
+    `<tr><td>${cat}</td><td style="text-align:center">${d.qtd}</td><td>${fmtBRL(d.total)}</td></tr>`
+  ).join('') || '<tr><td colspan="3" style="color:#aaa;text-align:center;padding:12px">Nenhum dado</td></tr>';
+
+  const rowsLanc = lancs.map(l =>
+    `<tr>
+      <td>${fmtDate(l.data)}</td>
+      <td><span class="badge ${l.tipo==='receita'?'rec':'desp'}">${l.tipo}</span></td>
+      <td>${l.descricao||'—'}</td>
+      <td>${l.medico_nome||'—'}</td>
+      <td>${l.categoria||'—'}</td>
+      <td><span class="badge ${l.status==='confirmado'?'conf':'pend'}">${l.status||'—'}</span></td>
+      <td class="${l.tipo==='receita'?'val-rec':'val-desp'}">${l.tipo==='receita'?'+':'-'} ${fmtBRL(l.valor)}</td>
+    </tr>`
+  ).join('') || '<tr><td colspan="7" style="color:#aaa;text-align:center;padding:12px">Nenhum lançamento</td></tr>';
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>${titulo}</title>
+<style>
+  @page { size: A4 portrait; margin: 15mm 12mm; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #222; background:#fff; }
+
+  /* Cabeçalho */
+  .header { border-bottom: 3px solid #185FA5; padding-bottom: 10px; margin-bottom: 14px; }
+  .header h1 { font-size: 20px; color: #185FA5; margin-bottom: 2px; }
+  .header h2 { font-size: 14px; color: #555; font-weight: normal; margin-bottom: 4px; }
+  .periodo { font-size: 12px; color: #777; }
+
+  /* Cards de métricas */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  .metric { border: 1.5px solid #e0e0e0; border-radius: 8px; padding: 12px 14px; }
+  .metric-label { font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .metric-val { font-size: 17px; font-weight: bold; }
+  .verde   { color: #1a7a3a; }
+  .vermelho{ color: #b03020; }
+  .azul    { color: #185FA5; }
+  .amarelo { color: #8a6200; }
+
+  /* Seções */
+  h3 { font-size: 14px; color: #185FA5; margin: 18px 0 8px; padding-bottom: 5px; border-bottom: 2px solid #185FA5; }
+
+  /* Tabelas */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 12px; }
+  thead th { background: #EEF3FB; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; color: #185FA5; border-bottom: 2px solid #c5d6ef; }
+  tbody td { padding: 7px 10px; border-bottom: 1px solid #eee; vertical-align: middle; line-height: 1.4; }
+  tbody tr:last-child td { border-bottom: none; }
+  tfoot td { padding: 8px 10px; font-weight: bold; background: #f5f7fb; font-size: 13px; border-top: 2px solid #c5d6ef; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge.rec  { background: #e2f5eb; color: #1a7a3a; }
+  .badge.desp { background: #fde8e5; color: #b03020; }
+  .badge.conf { background: #e2f5eb; color: #1a7a3a; }
+  .badge.pend { background: #fef4d4; color: #8a6200; }
+
+  /* Valores coloridos */
+  .val-rec  { color: #1a7a3a; font-weight: 600; text-align: right; }
+  .val-desp { color: #b03020; font-weight: 600; text-align: right; }
+
+  /* Rodapé */
+  .footer { margin-top: 24px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 11px; color: #aaa; text-align: center; }
+
+  @media print {
+    body { font-size: 13px; }
+    .no-print { display: none; }
+    h3 { page-break-after: avoid; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏥 ClinicaAOGIC — ${titulo}</h1>
+  ${subtitulo ? `<h2>${subtitulo}</h2>` : ''}
+  <div class="periodo">
+    Período: <strong>${fmtDate(ini)}</strong> a <strong>${fmtDate(fim)}</strong>
+    &nbsp;|&nbsp; Emitido em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-label">Total Receitas</div>
+    <div class="metric-val verde">${fmtBRL(totalRec)}</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Total Despesas</div>
+    <div class="metric-val vermelho">${fmtBRL(totalDesp)}</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Resultado</div>
+    <div class="metric-val azul">${fmtBRL(resultado)}</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">A Receber</div>
+    <div class="metric-val amarelo">${fmtBRL(pendente)}</div>
+  </div>
+</div>
+
+<h3>Receita por Médico</h3>
+<table>
+  <thead><tr><th>Médico</th><th style="text-align:center">Consultas</th><th>Total</th><th>Pacientes</th></tr></thead>
+  <tbody>${rowsMedico}</tbody>
+</table>
+
+<h3>Receita por Convênio</h3>
+<table>
+  <thead><tr><th>Convênio</th><th style="text-align:center">Qtd</th><th>Total</th></tr></thead>
+  <tbody>${rowsConvenio}</tbody>
+</table>
+
+<h3>Lançamentos Detalhados</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Tipo</th>
+      <th>Descrição</th>
+      <th>Médico</th>
+      <th>Categoria</th>
+      <th>Status</th>
+      <th style="text-align:right">Valor</th>
+    </tr>
+  </thead>
+  <tbody>${rowsLanc}</tbody>
+  <tfoot>
+    <tr>
+      <td colspan="6">Resultado do período</td>
+      <td style="text-align:right;color:${resultado>=0?'#1a7a3a':'#b03020'}">${fmtBRL(resultado)}</td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="footer">
+  ClinicaAOGIC — Relatório gerado automaticamente em ${new Date().toLocaleString('pt-BR')}
+</div>
+
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 600);
+}
+
+// ══════════════════════════════════════════════
 // USUÁRIOS
 // ══════════════════════════════════════════════
 async function loadUsuarios() {
-  // Garantir que médicos estão carregados para mostrar vínculo
   if (!state.medicos.length) await loadMedicos();
-  // Usar fetch direto pois a API de usuarios não requer token
   try {
     const r = await fetch('/api/usuarios');
     const res = await r.json();
@@ -1247,7 +1390,6 @@ async function confirmDeleteUsuario(id, nome) {
 const prontState = { pacienteAtual: null, prontuarios: [] };
 
 async function abrirProntuario(pacienteId) {
-  // LGPD: secretaria não tem acesso ao prontuário
   if (auth.usuario?.perfil === 'secretaria') {
     toast('Acesso negado — LGPD: secretaria não pode acessar prontuários', 'error');
     return;
@@ -1256,12 +1398,10 @@ async function abrirProntuario(pacienteId) {
   if (!pac) return;
   prontState.pacienteAtual = pac;
 
-  // Atualizar header do prontuário
   document.getElementById('prnt-pac-nome').textContent = pac.nome;
   document.getElementById('prnt-pac-info').textContent =
     `${pac.cpf} · ${fmt_date(pac.nascimento)} · ${pac.convenio}`;
 
-  // Mostrar seção prontuário
   $$('.section').forEach(s => s.classList.remove('active'));
   $$('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('sec-prontuario').classList.add('active');
@@ -1287,7 +1427,6 @@ function renderProntuarios() {
     return;
   }
   container.innerHTML = prontState.prontuarios.map(p => {
-    // Médico só edita suas próprias consultas
     const podeEditar = auth.usuario?.perfil !== 'medico' || p.medico_id === auth.usuario?.medico_id;
     return `
     <div class="prnt-card" onclick="verProntuario(${p.id})">
@@ -1316,7 +1455,6 @@ function renderProntuarios() {
 function verProntuario(id) {
   const p = prontState.prontuarios.find(x => x.id === id);
   if (!p) return;
-  // Secretaria vê mas não edita
   if (auth.usuario?.perfil === 'secretaria') {
     toast('Prontuário — apenas leitura para secretaria', 'error');
     return;
@@ -1350,7 +1488,6 @@ async function editProntuario(id) {
   const res = await API.get('/api/prontuarios/' + id);
   if (!res.ok) { toast('Erro', 'error'); return; }
   const p = res.data; state.editingId = id; state.editingType = 'prontuario';
-
   document.getElementById('fp-data').value              = p.data_consulta || '';
   document.getElementById('fp-paciente').value          = p.paciente_id || '';
   document.getElementById('fp-medico').innerHTML =
@@ -1375,7 +1512,6 @@ async function editProntuario(id) {
   document.getElementById('fp-prescricao').value        = p.prescricao || '';
   document.getElementById('fp-retorno').value           = p.retorno_dias || '';
   document.getElementById('fp-obs').value               = p.observacoes || '';
-
   openModalProntuario('Editar Consulta — ' + p.paciente_nome);
 }
 
@@ -1429,7 +1565,6 @@ async function confirmDeleteProntuario(id) {
   if (prontState.pacienteAtual) loadProntuarios(prontState.pacienteAtual.id);
 }
 
-// Abrir prontuário pela agenda
 function abrirProntuarioAgendamento(agendamentoId) {
   if (auth.usuario?.perfil === 'secretaria') {
     toast('Acesso negado — LGPD: secretaria não pode acessar prontuários', 'error');
@@ -1441,13 +1576,10 @@ function abrirProntuarioAgendamento(agendamentoId) {
   if (pac) abrirProntuario(pac.id);
 }
 
-
 // ══════════════════════════════════════════════
 // WHATSAPP
 // ══════════════════════════════════════════════
-
 function limparTelefone(tel) {
-  // Remove tudo exceto números e adiciona 55 (Brasil)
   const nums = tel.replace(/[^0-9]/g, '');
   if (nums.startsWith('55')) return nums;
   return '55' + nums;
@@ -1459,7 +1591,6 @@ function abrirWhatsApp(telefone, mensagem) {
   window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
 }
 
-// Enviar agenda do dia para um médico
 async function enviarAgendaMedico(medicoId) {
   const med = state.medicos.find(m => m.id == medicoId);
   if (!med) return;
@@ -1471,41 +1602,31 @@ async function enviarAgendaMedico(medicoId) {
   const ags = res.data;
   const dataFmt = new Date(state.agendaDate + 'T00:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
 
-  let msg = `🏥 *ClinicaApp — Agenda do dia*
-`;
-  msg += `📅 ${dataFmt}
-`;
-  msg += `👨‍⚕️ ${med.nome} — ${med.especialidade}
-
-`;
+  let msg = `🏥 *ClinicaAOGIC — Agenda do dia*\n`;
+  msg += `📅 ${dataFmt}\n`;
+  msg += `👨‍⚕️ ${med.nome} — ${med.especialidade}\n\n`;
 
   const ativos = ags.filter(a => a.status_agenda !== 'cancelado');
   if (!ativos.length) {
     msg += `Nenhuma consulta agendada para hoje.`;
   } else {
-    msg += `*${ativos.length} consulta(s) agendada(s):*
-
-`;
+    msg += `*${ativos.length} consulta(s) agendada(s):*\n\n`;
     ativos.forEach(ag => {
       const statusEmoji = { agendado:'📋', confirmado:'✅', realizado:'✔️', cancelado:'❌', faltou:'⚠️' };
-      msg += `${statusEmoji[ag.status_agenda]||'📋'} *${ag.hora}* — ${ag.paciente_nome}
-`;
+      msg += `${statusEmoji[ag.status_agenda]||'📋'} *${ag.hora}* — ${ag.paciente_nome}\n`;
       msg += `   ${ag.tipo} · ${ag.duracao_min}min`;
       if (ag.status_pgto === 'pago') msg += ' - Pago';
       else if (ag.status_pgto === 'pendente') msg += ' - Pendente';
       msg += '\n\n';
     });
   }
-
-  msg += `_Enviado pelo ClinicaApp_`;
+  msg += `_Enviado pelo ClinicaAOGIC_`;
   abrirWhatsApp(med.telefone, msg);
 }
 
-// Enviar lembrete de consulta para paciente
 function enviarLembreteConsulta(agendamentoId) {
   const ag = state.agendamentos.find(a => a.id == agendamentoId);
   if (!ag) return;
-
   const pac = state.pacientes.find(p => p.id == ag.paciente_id);
   if (!pac) { toast('Paciente não encontrado', 'error'); return; }
   if (!pac.telefone) { toast('Paciente sem telefone cadastrado!', 'error'); return; }
@@ -1513,35 +1634,20 @@ function enviarLembreteConsulta(agendamentoId) {
   const dataFmt = new Date(ag.data + 'T00:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
   const med = state.medicos.find(m => m.id == ag.medico_id);
 
-  let msg = `Olá, *${pac.nome}*! 👋
-
-`;
-  msg += `🏥 *Lembrete de Consulta*
-
-`;
-  msg += `📅 *Data:* ${dataFmt}
-`;
-  msg += `🕐 *Horário:* ${ag.hora}
-`;
-  msg += `👨‍⚕️ *Médico:* ${ag.medico_nome || med?.nome || ''}
-`;
-  msg += `🩺 *Especialidade:* ${ag.especialidade || med?.especialidade || ''}
-`;
-  msg += `📋 *Tipo:* ${ag.tipo}
-
-`;
-  msg += `Por favor, chegue com 10 minutos de antecedência.
-
-`;
-  msg += `Em caso de dúvidas ou necessidade de remarcar, entre em contato.
-
-`;
-  msg += `_ClinicaApp_`;
+  let msg = `Olá, *${pac.nome}*! 👋\n\n`;
+  msg += `🏥 *Lembrete de Consulta*\n\n`;
+  msg += `📅 *Data:* ${dataFmt}\n`;
+  msg += `🕐 *Horário:* ${ag.hora}\n`;
+  msg += `👨‍⚕️ *Médico:* ${ag.medico_nome || med?.nome || ''}\n`;
+  msg += `🩺 *Especialidade:* ${ag.especialidade || med?.especialidade || ''}\n`;
+  msg += `📋 *Tipo:* ${ag.tipo}\n\n`;
+  msg += `Por favor, chegue com 10 minutos de antecedência.\n\n`;
+  msg += `Em caso de dúvidas ou necessidade de remarcar, entre em contato.\n\n`;
+  msg += `_ClinicaAOGIC_`;
 
   abrirWhatsApp(pac.telefone, msg);
 }
 
-// Enviar agenda completa do dia (todos os médicos)
 async function enviarAgendaCompleta() {
   const res = await API.get(`/api/agendamentos?data=${state.agendaDate}`);
   if (!res.ok) { toast('Erro ao carregar agenda', 'error'); return; }
@@ -1551,16 +1657,10 @@ async function enviarAgendaCompleta() {
 
   if (!ags.length) { toast('Nenhum agendamento para hoje', 'error'); return; }
 
-  let msg = `🏥 *ClinicaApp — Agenda Completa*
-`;
-  msg += `📅 ${dataFmt}
+  let msg = `🏥 *ClinicaAOGIC — Agenda Completa*\n`;
+  msg += `📅 ${dataFmt}\n\n`;
+  msg += `*Total: ${ags.length} consulta(s)*\n\n`;
 
-`;
-  msg += `*Total: ${ags.length} consulta(s)*
-
-`;
-
-  // Agrupar por médico
   const porMedico = {};
   ags.forEach(ag => {
     if (!porMedico[ag.medico_nome]) porMedico[ag.medico_nome] = [];
@@ -1568,148 +1668,20 @@ async function enviarAgendaCompleta() {
   });
 
   Object.entries(porMedico).forEach(([nome, consultas]) => {
-    msg += `👨‍⚕️ *${nome}*
-`;
+    msg += `👨‍⚕️ *${nome}*\n`;
     consultas.forEach(ag => {
-      msg += `   🕐 ${ag.hora} — ${ag.paciente_nome} (${ag.tipo})
-`;
+      msg += `   🕐 ${ag.hora} — ${ag.paciente_nome} (${ag.tipo})\n`;
     });
     msg += '\n';
   });
 
-  msg += `_Enviado pelo ClinicaApp_`;
+  msg += `_Enviado pelo ClinicaAOGIC_`;
 
-  // Copiar para clipboard
   navigator.clipboard.writeText(msg).then(() => {
     toast('Agenda copiada! Cole no WhatsApp.');
   }).catch(() => {
-    // Fallback: abrir wa.me sem número
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   });
-}
-
-
-// ══════════════════════════════════════════════
-// IMPRESSÃO FINANCEIRO
-// ══════════════════════════════════════════════
-function imprimirFinanceiro(medicoId) {
-  const ini = document.getElementById('fin-data-ini').value;
-  const fim = document.getElementById('fin-data-fim').value;
-  const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
-  const fmtBRL = v => Number(v||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
-
-  let lancs = finState.lancamentos || [];
-  let titulo = 'Relatório Financeiro Geral';
-  let subtitulo = '';
-
-  if (medicoId) {
-    const med = state.medicos.find(m => m.id == medicoId);
-    lancs = lancs.filter(l => l.medico_id == medicoId);
-    titulo = 'Relatório Financeiro — ' + (med ? med.nome : '');
-    subtitulo = med ? med.especialidade : '';
-  }
-
-  const receitas = lancs.filter(l => l.tipo === 'receita');
-  const despesas = lancs.filter(l => l.tipo === 'despesa');
-  const totalRec = receitas.reduce((s,l) => s + (l.valor||0), 0);
-  const totalDesp = despesas.reduce((s,l) => s + (l.valor||0), 0);
-  const resultado = totalRec - totalDesp;
-  const pendente = lancs.filter(l=>l.status==='pendente').reduce((s,l)=>s+(l.valor||0),0);
-
-  // Agrupar por médico
-  const porMedico = {};
-  receitas.forEach(l => {
-    const nome = l.medico_nome || 'Sem médico';
-    if (!porMedico[nome]) porMedico[nome] = { qtd:0, total:0, pacientes:[] };
-    porMedico[nome].qtd++;
-    porMedico[nome].total += l.valor||0;
-    if (l.descricao && !porMedico[nome].pacientes.includes(l.descricao))
-      porMedico[nome].pacientes.push(l.descricao);
-  });
-
-  // Agrupar por convênio
-  const porConvenio = {};
-  receitas.forEach(l => {
-    const cat = l.categoria || 'Particular';
-    if (!porConvenio[cat]) porConvenio[cat] = { qtd:0, total:0 };
-    porConvenio[cat].qtd++;
-    porConvenio[cat].total += l.valor||0;
-  });
-
-  const rowsMedico = Object.entries(porMedico).map(([nome, d]) =>
-    '<tr><td>' + nome + '</td><td style="text-align:center">' + d.qtd + '</td><td>' + fmtBRL(d.total) + '</td><td style="font-size:10px;color:#666">' + d.pacientes.slice(0,3).join(', ') + (d.pacientes.length>3 ? ' +' + (d.pacientes.length-3) + ' mais' : '') + '</td></tr>'
-  ).join('') || '<tr><td colspan="4" style="color:#aaa;text-align:center">Nenhum dado</td></tr>';
-
-  const rowsConvenio = Object.entries(porConvenio).map(([cat, d]) =>
-    '<tr><td>' + cat + '</td><td style="text-align:center">' + d.qtd + '</td><td>' + fmtBRL(d.total) + '</td></tr>'
-  ).join('') || '<tr><td colspan="3" style="color:#aaa;text-align:center">Nenhum dado</td></tr>';
-
-  const rowsLanc = lancs.map(l =>
-    '<tr><td>' + fmtDate(l.data) + '</td>' +
-    '<td><span class="badge ' + (l.tipo==='receita'?'badge-rec':'badge-desp') + '">' + l.tipo + '</span></td>' +
-    '<td>' + (l.descricao||'—') + '</td>' +
-    '<td>' + (l.medico_nome||'—') + '</td>' +
-    '<td>' + (l.categoria||'—') + '</td>' +
-    '<td><span class="badge ' + (l.status==='confirmado'?'badge-conf':'badge-pend') + '">' + (l.status||'—') + '</span></td>' +
-    '<td style="text-align:right;font-weight:500;color:' + (l.tipo==='receita'?'#2D7D46':'#993C1D') + '">' + (l.tipo==='receita'?'+':'-') + ' ' + fmtBRL(l.valor) + '</td></tr>'
-  ).join('') || '<tr><td colspan="7" style="color:#aaa;text-align:center">Nenhum lançamento</td></tr>';
-
-  const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/><title>' + titulo + '</title><style>' +
-    '* { margin:0; padding:0; box-sizing:border-box; }' +
-    'body { font-family: Arial, sans-serif; font-size: 12px; color: #333; padding: 24px; }' +
-    'h1 { font-size: 18px; color: #185FA5; margin-bottom: 4px; }' +
-    'h2 { font-size: 13px; color: #666; font-weight: normal; margin-bottom: 4px; }' +
-    'h3 { font-size: 13px; color: #185FA5; margin: 20px 0 8px; border-bottom: 2px solid #185FA5; padding-bottom: 4px; }' +
-    '.periodo { font-size: 11px; color: #888; margin-bottom: 20px; }' +
-    '.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }' +
-    '.metric { border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; text-align: center; }' +
-    '.metric-label { font-size: 10px; color: #888; margin-bottom: 4px; }' +
-    '.metric-val { font-size: 15px; font-weight: bold; }' +
-    '.verde { color: #2D7D46; } .vermelho { color: #993C1D; } .azul { color: #185FA5; } .amarelo { color: #856404; }' +
-    'table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }' +
-    'th { background: #F1EFE8; padding: 7px 8px; text-align: left; font-size: 11px; border-bottom: 2px solid #ddd; }' +
-    'td { padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 11px; vertical-align: top; }' +
-    '.badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 500; }' +
-    '.badge-rec { background: #E6F5EC; color: #2D7D46; }' +
-    '.badge-desp { background: #FDECEA; color: #993C1D; }' +
-    '.badge-pend { background: #FEF3CD; color: #856404; }' +
-    '.badge-conf { background: #E6F5EC; color: #2D7D46; }' +
-    '.footer { margin-top: 32px; font-size: 10px; color: #aaa; text-align: center; border-top: 1px solid #eee; padding-top: 12px; }' +
-    '@media print { body { padding: 10px; } button { display:none; } }' +
-    '</style></head><body>' +
-    '<h1>🏥 ClinicaApp — ' + titulo + '</h1>' +
-    (subtitulo ? '<h2>' + subtitulo + '</h2>' : '') +
-    '<div class="periodo">Período: ' + fmtDate(ini) + ' a ' + fmtDate(fim) + ' &nbsp;|&nbsp; Emitido em: ' + new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR') + '</div>' +
-
-    '<div class="metrics">' +
-    '<div class="metric"><div class="metric-label">Total Receitas</div><div class="metric-val verde">' + fmtBRL(totalRec) + '</div></div>' +
-    '<div class="metric"><div class="metric-label">Total Despesas</div><div class="metric-val vermelho">' + fmtBRL(totalDesp) + '</div></div>' +
-    '<div class="metric"><div class="metric-label">Resultado</div><div class="metric-val azul">' + fmtBRL(resultado) + '</div></div>' +
-    '<div class="metric"><div class="metric-label">A Receber</div><div class="metric-val amarelo">' + fmtBRL(pendente) + '</div></div>' +
-    '</div>' +
-
-    '<h3>Receita por Médico</h3>' +
-    '<table><thead><tr><th>Médico</th><th style="text-align:center">Consultas</th><th>Total</th><th>Pacientes</th></tr></thead>' +
-    '<tbody>' + rowsMedico + '</tbody></table>' +
-
-    '<h3>Receita por Convênio</h3>' +
-    '<table><thead><tr><th>Convênio</th><th style="text-align:center">Qtd</th><th>Total</th></tr></thead>' +
-    '<tbody>' + rowsConvenio + '</tbody></table>' +
-
-    '<h3>Lançamentos Detalhados</h3>' +
-    '<table><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Médico</th><th>Categoria</th><th>Status</th><th style="text-align:right">Valor</th></tr></thead>' +
-    '<tbody>' + rowsLanc + '</tbody>' +
-    '<tfoot><tr style="background:#F8F8F8;font-weight:bold"><td colspan="6">Total</td><td style="text-align:right;color:#185FA5">' + fmtBRL(totalRec - totalDesp) + '</td></tr></tfoot>' +
-    '</table>' +
-
-    '<div class="footer">ClinicaApp — Relatório gerado automaticamente em ' + new Date().toLocaleString('pt-BR') + '</div>' +
-    '</body></html>';
-
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 500);
 }
 
 // ══════════════════════════════════════════════
@@ -1742,7 +1714,6 @@ async function salvarNovaSenha() {
   const btn = document.getElementById('btn-salvar-senha');
   btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
 
-  // Verificar senha atual via login
   const checkRes = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1756,7 +1727,6 @@ async function salvarNovaSenha() {
     return;
   }
 
-  // Atualizar senha
   const res = await API.put('/api/usuarios/' + auth.usuario.id, {
     nome:      auth.usuario.nome,
     email:     auth.usuario.email,
