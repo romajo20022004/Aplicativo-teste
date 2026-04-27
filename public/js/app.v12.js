@@ -1462,14 +1462,19 @@ function verProntuario(id) {
   editProntuario(id);
 }
 
-function newProntuario() {
+async function newProntuario() {
   state.editingId = null; state.editingType = 'prontuario';
+  if (!state.medicos.length) await loadMedicos();
   document.getElementById('fp-form').reset();
   document.getElementById('fp-data').value = new Date().toISOString().slice(0,10);
   document.getElementById('fp-paciente').value = prontState.pacienteAtual?.id || '';
   document.getElementById('fp-medico').innerHTML =
     '<option value="">Selecione o médico...</option>' +
     state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome} — ${m.especialidade}</option>`).join('');
+  // Pré-selecionar médico logado
+  if (auth.usuario?.perfil === 'medico' && auth.usuario?.medico_id) {
+    document.getElementById('fp-medico').value = auth.usuario.medico_id;
+  }
   openModalProntuario('Nova Consulta — ' + (prontState.pacienteAtual?.nome || ''));
 }
 
