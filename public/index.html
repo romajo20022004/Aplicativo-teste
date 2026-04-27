@@ -246,10 +246,29 @@
       <!-- Dashboard -->
       <div class="section" id="sec-dashboard">
         <div class="metrics">
-          <div class="metric"><div class="metric-label">Total de pacientes</div><div class="metric-val" style="color:var(--blue)" id="m-total">—</div></div>
-          <div class="metric"><div class="metric-label">Consultas hoje</div><div class="metric-val" style="color:var(--teal-mid)">—</div></div>
-          <div class="metric"><div class="metric-label">Receita do mês</div><div class="metric-val" style="color:var(--amber-mid)">—</div></div>
-          <div class="metric"><div class="metric-label">Pendências</div><div class="metric-val" style="color:var(--coral-mid)">—</div></div>
+          <div class="metric"><div class="metric-label">Total de pacientes</div><div class="metric-val" style="color:var(--blue)" id="dash-total-pac">—</div></div>
+          <div class="metric"><div class="metric-label">Consultas hoje</div><div class="metric-val" style="color:var(--teal-mid)" id="dash-consultas-hoje">—</div></div>
+          <div class="metric"><div class="metric-label">Receita do mês</div><div class="metric-val" style="color:var(--amber-mid)" id="dash-receita-mes">—</div></div>
+          <div class="metric"><div class="metric-label">Pendências hoje</div><div class="metric-val" style="color:var(--coral-mid)" id="dash-pendencias">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Agenda de hoje</span></div>
+            <div class="tbl-wrap"><table>
+              <thead><tr><th>Hora</th><th>Paciente</th><th>Médico</th><th>Tipo</th><th>Status</th></tr></thead>
+              <tbody id="dash-agenda-tbody"><tr><td colspan="5" class="tbl-empty">Carregando...</td></tr></tbody>
+            </table></div>
+          </div>
+          <div>
+            <div class="panel" style="margin-bottom:16px">
+              <div class="panel-head"><span class="panel-title">🎂 Aniversariantes do mês</span></div>
+              <div id="dash-aniversariantes" style="padding:8px 16px">Carregando...</div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><span class="panel-title">Últimos pacientes</span></div>
+              <div id="dash-ultimos-pac" style="padding:8px 16px">Carregando...</div>
+            </div>
+          </div>
         </div>
         <div class="panel">
           <div class="panel-head"><span class="panel-title">Acesso rápido</span></div>
@@ -601,6 +620,6 @@
   </div>
 </div>
 
-<script src="/js/app.v11.js"></script>
+<script src="/js/app.v12.js"></script>
 </body>
 </html>
