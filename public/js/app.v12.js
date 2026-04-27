@@ -1,5 +1,5 @@
 // public/js/app.js
- 
+
 // ── Estado global ──────────────────────────────────────────────
 const state = {
   pacientes: [], medicos: [], agendamentos: [],
@@ -1520,6 +1520,41 @@ async function editProntuario(id) {
   openModalProntuario('Editar Consulta — ' + p.paciente_nome);
 }
 
+async function acharHorarioLivre(medicoId, data) {
+  // Buscar agendamentos do médico naquele dia
+  const res = await API.get('/api/agendamentos?data=' + data + '&medico_id=' + medicoId);
+  const agendamentos = res.ok ? (res.data || []) : [];
+
+  // Horários padrão da agenda
+  const horasPadrao = [
+    '07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30',
+    '11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30',
+    '15:00','15:30','16:00','16:30','17:00','17:30','18:00'
+  ];
+
+  const horasOcupadas = agendamentos.map(a => a.hora);
+
+  // Tentar achar horário padrão livre
+  for (const h of horasPadrao) {
+    if (!horasOcupadas.includes(h)) return h;
+  }
+
+  // Todos os horários padrão ocupados — pegar último e adicionar 1 minuto
+  if (agendamentos.length > 0) {
+    const ultHora = agendamentos
+      .map(a => a.hora)
+      .sort()
+      .pop(); // último horário
+    const [hh, mm] = ultHora.split(':').map(Number);
+    const totalMin = hh * 60 + mm + 1;
+    const novoHH = String(Math.floor(totalMin / 60)).padStart(2, '0');
+    const novoMM = String(totalMin % 60).padStart(2, '0');
+    return novoHH + ':' + novoMM;
+  }
+
+  return '08:00'; // fallback
+}
+
 async function saveProntuario() {
   const data = {
     paciente_id:          parseInt(document.getElementById('fp-paciente').value),
@@ -1570,12 +1605,15 @@ async function saveProntuario() {
     );
 
     if (!agExistente) {
+      // Buscar horário livre para o médico naquele dia
+      const horaLivre = await acharHorarioLivre(data.medico_id, data.data_consulta);
+
       // Criar agendamento automático como "realizado"
       const agRes = await API.post('/api/agendamentos', {
         paciente_id:   data.paciente_id,
         medico_id:     data.medico_id,
         data:          data.data_consulta,
-        hora:          '08:00',
+        hora:          horaLivre,
         duracao_min:   30,
         tipo:          'Consulta',
         valor:         pac?.valor_consulta || 0,
