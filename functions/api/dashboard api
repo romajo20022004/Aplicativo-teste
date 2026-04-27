@@ -1,0 +1,70 @@
+// functions/api/dashboard.js
+export async function onRequestGet({ env, request }) {
+  try {
+    const url = new URL(request.url);
+    const medico_id = url.searchParams.get('medico_id') || '';
+
+    const hoje = new Date().toISOString().slice(0, 10);
+    const mesIni = hoje.slice(0, 7) + '-01';
+    const mesFim = hoje;
+
+    // Total pacientes
+    let qPac = 'SELECT COUNT(*) as total FROM pacientes WHERE status = "ativo"';
+    const totalPac = await env.DB.prepare(qPac).first();
+
+    // Consultas hoje
+    let qHoje = 'SELECT COUNT(*) as total FROM agendamentos WHERE data = ? AND status_agenda NOT IN ("cancelado","faltou")';
+    const params = [hoje];
+    if (medico_id) { qHoje += ' AND medico_id = ?'; params.push(medico_id); }
+    const consultasHoje = await env.DB.prepare(qHoje).bind(...params).first();
+
+    // Receita do mês
+    let qRec = 'SELECT COALESCE(SUM(valor),0) as total FROM lancamentos WHERE tipo="receita" AND data >= ? AND data <= ? AND status != "cancelado"';
+    const recParams = [mesIni, mesFim];
+    if (medico_id) { qRec += ' AND medico_id = ?'; recParams.push(medico_id); }
+    const receitaMes = await env.DB.prepare(qRec).bind(...recParams).first();
+
+    // Pendências (agendados/confirmados mas não realizados hoje)
+    let qPend = 'SELECT COUNT(*) as total FROM agendamentos WHERE data = ? AND status_agenda IN ("agendado","confirmado")';
+    const pendParams = [hoje];
+    if (medico_id) { qPend += ' AND medico_id = ?'; pendParams.push(medico_id); }
+    const pendencias = await env.DB.prepare(qPend).bind(...pendParams).first();
+
+    // Agenda de hoje (próximas consultas)
+    let qAgenda = `SELECT a.*, p.nome as paciente_nome, m.nome as medico_nome, m.cor as medico_cor
+      FROM agendamentos a
+      JOIN pacientes p ON p.id = a.paciente_id
+      JOIN medicos m ON m.id = a.medico_id
+      WHERE a.data = ? AND a.status_agenda NOT IN ("cancelado","faltou")
+      ORDER BY a.hora ASC LIMIT 10`;
+    const agendaParams = [hoje];
+    if (medico_id) { qAgenda = qAgenda.replace('WHERE a.data = ?', 'WHERE a.data = ? AND a.medico_id = ?'); agendaParams.push(medico_id); }
+    const agendaHoje = await env.DB.prepare(qAgenda).bind(...agendaParams).all();
+
+    // Aniversariantes do mês
+    const mes = hoje.slice(5, 7);
+    const aniversariantes = await env.DB.prepare(
+      `SELECT nome, nascimento, telefone FROM pacientes 
+       WHERE strftime('%m', nascimento) = ? AND status = 'ativo'
+       ORDER BY strftime('%d', nascimento) ASC LIMIT 10`
+    ).bind(mes).all();
+
+    // Últimos pacientes cadastrados
+    const ultimosPacientes = await env.DB.prepare(
+      'SELECT nome, convenio, criado_em FROM pacientes ORDER BY id DESC LIMIT 5'
+    ).all();
+
+    return Response.json({
+      ok: true,
+      totalPacientes: totalPac?.total || 0,
+      consultasHoje: consultasHoje?.total || 0,
+      receitaMes: receitaMes?.total || 0,
+      pendencias: pendencias?.total || 0,
+      agendaHoje: agendaHoje.results,
+      aniversariantes: aniversariantes.results,
+      ultimosPacientes: ultimosPacientes.results,
+    });
+  } catch (e) {
+    return Response.json({ ok: false, error: e.message }, { status: 500 });
+  }
+}
