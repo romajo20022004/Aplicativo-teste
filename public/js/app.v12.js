@@ -1560,7 +1560,8 @@ async function saveProntuario() {
 
   // ── Se nova consulta, verificar se já existe agendamento realizado no dia ──
   if (!state.editingId) {
-    const pac = prontState.pacienteAtual;
+    // Buscar paciente pelo ID do prontuário (não pelo prontState que pode estar desatualizado)
+    const pac = state.pacientes.find(p => p.id === data.paciente_id) || prontState.pacienteAtual;
     const agExistente = state.agendamentos.find(a =>
       a.paciente_id === data.paciente_id &&
       a.medico_id === data.medico_id &&
