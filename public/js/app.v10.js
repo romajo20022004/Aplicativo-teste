@@ -1,4 +1,4 @@
-// public/js/app.js
+// public/js/app.js 
 
 // ── Estado global ──────────────────────────────────────────────
 const state = {
