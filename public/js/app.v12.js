@@ -419,9 +419,9 @@ function renderPacientes() {
       <td style="font-weight:500">${fmt_brl(p.valor_consulta)}</td>
       <td><span class="badge ${p.status==='ativo'?'badge-teal':'badge-red'}">${p.status==='ativo'?'Ativo':'Inativo'}</span></td>
       <td><div class="flex-row">
-        <button class="btn btn-sm" onclick="abrirProntuario(${p.id})" title="Prontuário" style="background:var(--teal-light);color:var(--teal);border-color:transparent">📋 Prontuário</button>
-        <button class="btn btn-sm" onclick="editPaciente(${p.id})">✎ Editar</button>
-        <button class="btn btn-sm btn-danger" onclick="confirmDeletePaciente(${p.id},'${p.nome.replace(/'/g,"\\'")}')">🗑</button>
+        \${auth.usuario?.perfil !== 'secretaria' ? `<button class="btn btn-sm" onclick="abrirProntuario(\${p.id})" title="Prontuário" style="background:var(--teal-light);color:var(--teal);border-color:transparent">📋 Prontuário</button>` : ''}
+        <button class="btn btn-sm" onclick="editPaciente(\${p.id})">✎ Editar</button>
+        \${auth.usuario?.perfil !== 'secretaria' ? `<button class="btn btn-sm btn-danger" onclick="confirmDeletePaciente(\${p.id},'\${p.nome.replace(/'/g,\"\\\\'\")}')">🗑</button>` : ''}
       </div></td>
     </tr>`).join('');
 }
@@ -454,7 +454,40 @@ function resetForm(sel) {
   $$('.error', form).forEach(e=>e.classList.remove('error'));
 }
 
-function newPaciente() { state.editingId=null; state.editingType='paciente'; resetForm('#pac-form'); openModal('Novo Paciente'); setTimeout(()=>$('#f-nome').focus(),100); }
+function newPaciente() {
+  state.editingId=null; state.editingType='paciente';
+  resetForm('#pac-form');
+  // Resetar seção de agendamento
+  const chk = document.getElementById('chk-agendar');
+  if (chk) { chk.checked = false; toggleAgendarJunto(false); }
+  const fa2data = document.getElementById('fa2-data');
+  if (fa2data) fa2data.value = new Date().toISOString().slice(0,10);
+  // Popular médicos no select do agendamento
+  const fa2med = document.getElementById('fa2-medico');
+  if (fa2med) {
+    fa2med.innerHTML = '<option value="">Selecione...</option>' +
+      state.medicos.filter(m=>m.status==='ativo').map(m=>`<option value="${m.id}">${m.nome} — ${m.especialidade}</option>`).join('');
+    // Pré-selecionar médico logado se for médico
+    if (auth.usuario?.perfil === 'medico' && auth.usuario?.medico_id) {
+      fa2med.value = auth.usuario.medico_id;
+    }
+  }
+  openModal('Novo Paciente');
+  setTimeout(()=>$('#f-nome').focus(),100);
+}
+
+function toggleAgendarJunto(checked) {
+  const campos = document.getElementById('campos-agendamento');
+  if (campos) campos.style.display = checked ? '' : 'none';
+}
+
+async function savePacienteEAgendar() {
+  // Salvar paciente normalmente primeiro
+  const nomePac = $('#f-nome').value.trim();
+  if (!nomePac) { toast('Preencha o nome do paciente', 'error'); return; }
+  await savePaciente();
+  // O agendamento será criado após o paciente ser salvo — via loadPacientes
+}
 
 async function editPaciente(id) {
   const res = await API.get('/api/pacientes/'+id);
@@ -485,7 +518,39 @@ async function savePaciente() {
   const res = state.editingId ? await API.put('/api/pacientes/'+state.editingId,data) : await API.post('/api/pacientes',data);
   btn.disabled=false; btn.textContent='Salvar';
   if(!res.ok) { toast(res.error||'Erro ao salvar','error'); return; }
-  toast(state.editingId?'Paciente atualizado!':'Paciente cadastrado!');
+
+  // Verificar se deve criar agendamento junto
+  const chkAgendar = document.getElementById('chk-agendar');
+  if (!state.editingId && chkAgendar?.checked) {
+    const medicoId = parseInt(document.getElementById('fa2-medico')?.value);
+    const dataAg   = document.getElementById('fa2-data')?.value;
+    const horaAg   = document.getElementById('fa2-hora')?.value || '08:00';
+    const tipoAg   = document.getElementById('fa2-tipo')?.value || 'Consulta';
+
+    if (medicoId && dataAg) {
+      // Buscar ID do paciente recém criado
+      const pacId = res.id;
+      const valor = parseFloat($('#f-valor').value) || 0;
+      await API.post('/api/agendamentos', {
+        paciente_id:   pacId,
+        medico_id:     medicoId,
+        data:          dataAg,
+        hora:          horaAg,
+        duracao_min:   30,
+        tipo:          tipoAg,
+        valor:         valor,
+        status_pgto:   'pendente',
+        status_agenda: 'agendado',
+        observacoes:   ''
+      });
+      toast('Paciente cadastrado e consulta agendada! ✅');
+    } else {
+      toast('Paciente cadastrado! (Agendamento não criado — médico ou data não informados)', 'error');
+    }
+  } else {
+    toast(state.editingId ? 'Paciente atualizado!' : 'Paciente cadastrado!');
+  }
+
   closeModal(); loadPacientes();
 }
 
@@ -806,7 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const active = $$('.nav-item.active')[0]?.dataset.page;
-    if(active==='pacientes')  { if(!sec) newPaciente(); }
+    if(active==='pacientes')  newPaciente(); // secretaria pode cadastrar
     if(active==='medicos')    newMedico();
     if(active==='agenda')     newAgendamento();
     if(active==='financeiro') { if(!sec) newLancamento(); }
