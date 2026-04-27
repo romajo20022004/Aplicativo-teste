@@ -1,4 +1,4 @@
-<!DOCTYPE html>  
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -208,6 +208,10 @@
           <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="user-nome">Usuário</div>
           <div style="font-size:10px;color:#6b6b6b" id="user-perfil">Admin</div>
         </div>
+      </div>
+      <div id="backup-buttons" style="display:none;gap:4px;margin-bottom:6px">
+        <button onclick="fazerBackup('sql')" style="flex:1;padding:7px;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;background:none;font-size:11px;cursor:pointer;color:#185FA5">💾 SQL</button>
+        <button onclick="fazerBackup('csv')" style="flex:1;padding:7px;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;background:none;font-size:11px;cursor:pointer;color:#2D7D46">📊 CSV</button>
       </div>
       <button id="btn-trocar-senha" style="width:100%;padding:7px;border:0.5px solid rgba(0,0,0,0.1);border-radius:8px;background:none;font-size:12px;cursor:pointer;color:#6b6b6b;display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:6px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -597,6 +601,6 @@
   </div>
 </div>
 
-<script src="/js/app.v10.js"></script>
+<script src="/js/app.v11.js"></script>
 </body>
 </html>
