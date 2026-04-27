@@ -419,9 +419,9 @@ function renderPacientes() {
       <td style="font-weight:500">${fmt_brl(p.valor_consulta)}</td>
       <td><span class="badge ${p.status==='ativo'?'badge-teal':'badge-red'}">${p.status==='ativo'?'Ativo':'Inativo'}</span></td>
       <td><div class="flex-row">
-        \${auth.usuario?.perfil !== 'secretaria' ? `<button class="btn btn-sm" onclick="abrirProntuario(\${p.id})" title="Prontuário" style="background:var(--teal-light);color:var(--teal);border-color:transparent">📋 Prontuário</button>` : ''}
-        <button class="btn btn-sm" onclick="editPaciente(\${p.id})">✎ Editar</button>
-        \${auth.usuario?.perfil !== 'secretaria' ? `<button class="btn btn-sm btn-danger" onclick="confirmDeletePaciente(\${p.id},'\${p.nome.replace(/'/g,\"\\\\'\")}')">🗑</button>` : ''}
+        ${auth.usuario?.perfil !== 'secretaria' ? `<button class="btn btn-sm" onclick="abrirProntuario(${p.id})" title="Prontuário" style="background:var(--teal-light);color:var(--teal);border-color:transparent">📋 Prontuário</button>` : ''}
+        <button class="btn btn-sm" onclick="editPaciente(${p.id})">✎ Editar</button>
+        ${auth.usuario?.perfil !== 'secretaria' ? `<button class="btn btn-sm btn-danger" onclick="confirmDeletePaciente(${p.id},'${p.nome.replace(/'/g,"\\'")}')">🗑</button>` : ''}
       </div></td>
     </tr>`).join('');
 }
