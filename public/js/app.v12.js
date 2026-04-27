@@ -360,7 +360,8 @@ const PAGES = {
   medicos:    { title:'Médicos',    addBtn:'+ Novo Médico',       showSearch:false },
   agenda:     { title:'Agenda',     addBtn:'+ Novo Agendamento',  showSearch:false },
   financeiro: { title:'Financeiro', addBtn:'',                    showSearch:false },
-  dashboard:  { title:'Dashboard',  addBtn:'',                    showSearch:false }
+  dashboard:  { title:'Dashboard',  addBtn:'',                    showSearch:false },
+  usuarios:   { title:'Usuários',   addBtn:'+ Novo Usuário',      showSearch:false }
 };
 
 function navTo(page) {
