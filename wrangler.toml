@@ -6,3 +6,7 @@ pages_build_output_dir = "public"
 binding = "DB"
 database_name = "clinica-db"
 database_id = "41c46e78-afd3-41d5-ae27-bfc9b107523b"
+
+[[r2_buckets]]
+binding = "BACKUP_BUCKET"
+bucket_name = "aogic-backup"
