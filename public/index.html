@@ -52,6 +52,31 @@
             <div class="form-group span2"><label>Observações</label><textarea id="f-obs" placeholder="Anotações, alergias..."></textarea></div>
           </div>
         </div>
+        <!-- Seção opcional de agendamento -->
+        <div class="form-section" id="sec-agendar-junto" style="border:1.5px dashed var(--border);border-radius:8px;padding:12px;margin-top:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <input type="checkbox" id="chk-agendar" onchange="toggleAgendarJunto(this.checked)" style="width:16px;height:16px;cursor:pointer" />
+            <label for="chk-agendar" style="font-size:13px;font-weight:500;cursor:pointer">📅 Agendar consulta ao salvar</label>
+          </div>
+          <div id="campos-agendamento" style="display:none">
+            <div class="form-grid form-grid-2">
+              <div class="form-group"><label>Médico <span class="req">*</span></label>
+                <select class="form-select" id="fa2-medico"><option value="">Selecione...</option></select>
+              </div>
+              <div class="form-group"><label>Data <span class="req">*</span></label>
+                <input type="date" id="fa2-data" />
+              </div>
+              <div class="form-group"><label>Horário</label>
+                <input type="time" id="fa2-hora" value="08:00" step="1800" />
+              </div>
+              <div class="form-group"><label>Tipo</label>
+                <select class="form-select" id="fa2-tipo">
+                  <option>Consulta</option><option>Retorno</option><option>Exame</option><option>Procedimento</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
       </form>
     </div>
     <div class="modal-foot">
