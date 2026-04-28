@@ -986,6 +986,13 @@ async function marcarRealizado(id, pago) {
   const res = await API.put('/api/agendamentos/' + id, data);
   if (!res.ok) { toast('Erro ao atualizar', 'error'); return; }
 
+  // Atualizar state local imediatamente para o card re-renderizar
+  const agIdx = state.agendamentos.findIndex(a => a.id === id);
+  if (agIdx >= 0) {
+    state.agendamentos[agIdx] = { ...state.agendamentos[agIdx], ...data };
+  }
+  renderAgenda();
+
   // Verificar se já existe lançamento para este agendamento
   const lancRes = await API.get('/api/financeiro?data_ini=2020-01-01&data_fim=2099-12-31');
   const pac = state.pacientes.find(p => p.id === ag.paciente_id);
