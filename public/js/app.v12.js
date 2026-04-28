@@ -1023,7 +1023,8 @@ async function marcarRealizado(id, pago) {
   }
 
   toast(pago ? '💰 Consulta realizada e pagamento confirmado!' : '✔ Consulta marcada como realizada!');
-  loadAgenda();
+  state.agendamentos = [];
+  await loadAgenda();
 }
 
 async function confirmDeleteAgendamento(id) {
