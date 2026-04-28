@@ -2,12 +2,11 @@
 export async function onRequestGet({ env, request }) {
   try {
     const url = new URL(request.url);
-    const modo     = url.searchParams.get('modo') || 'mes';     // mes | dia | periodo
+    const modo     = url.searchParams.get('modo') || 'mes';
     const data_ini = url.searchParams.get('data_ini') || new Date().toISOString().slice(0,7) + '-01';
     const data_fim = url.searchParams.get('data_fim') || new Date().toISOString().slice(0,10);
     const medico_id= url.searchParams.get('medico_id') || '';
 
-    // Montar filtro de data
     let whereData = 'date(l.data) BETWEEN ? AND ?';
     const dateParams = [data_ini, data_fim];
 
@@ -25,6 +24,7 @@ export async function onRequestGet({ env, request }) {
       SELECT
         COALESCE(SUM(CASE WHEN tipo='receita' AND status!='cancelado' THEN valor ELSE 0 END),0) as total_receita,
         COALESCE(SUM(CASE WHEN tipo='despesa' AND status!='cancelado' THEN valor ELSE 0 END),0) as total_despesa,
+        COALESCE(SUM(CASE WHEN tipo='receita' AND status='confirmado' THEN valor ELSE 0 END),0) as receita_confirmada,
         COALESCE(SUM(CASE WHEN tipo='receita' AND status='pendente'   THEN valor ELSE 0 END),0) as receita_pendente,
         COUNT(CASE WHEN tipo='receita' AND status!='cancelado' THEN 1 END) as qtd_receitas,
         COUNT(CASE WHEN tipo='despesa' AND status!='cancelado' THEN 1 END) as qtd_despesas
@@ -34,7 +34,7 @@ export async function onRequestGet({ env, request }) {
 
     // ── Receita por médico ──
     const porMedico = await env.DB.prepare(`
-      SELECT m.nome, m.especialidade, m.cor,
+      SELECT m.id, m.nome, m.especialidade, m.cor,
         COALESCE(SUM(CASE WHEN l.tipo='receita' AND l.status!='cancelado' THEN l.valor ELSE 0 END),0) as total,
         COUNT(CASE WHEN l.tipo='receita' AND l.status!='cancelado' THEN 1 END) as qtd
       FROM medicos m
@@ -64,7 +64,7 @@ export async function onRequestGet({ env, request }) {
       ORDER BY l.data DESC, l.criado_em DESC
     `).bind(...allParams).all();
 
-    // ── Evolução diária (para gráfico) ──
+    // ── Evolução diária ──
     const evolucao = await env.DB.prepare(`
       SELECT date(data) as dia,
         COALESCE(SUM(CASE WHEN tipo='receita' AND status!='cancelado' THEN valor ELSE 0 END),0) as receita,
