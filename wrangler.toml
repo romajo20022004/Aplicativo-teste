@@ -10,3 +10,7 @@ database_id = "41c46e78-afd3-41d5-ae27-bfc9b107523b"
 [[r2_buckets]]
 binding = "BACKUP_BUCKET"
 bucket_name = "aogic-backup"
+
+[[r2_buckets]]
+binding = "FILES_BUCKET"
+bucket_name = "aogic-files"
