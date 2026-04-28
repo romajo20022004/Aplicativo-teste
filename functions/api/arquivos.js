@@ -5,10 +5,13 @@ export async function onRequestGet({ env, request }) {
     const paciente_id   = url.searchParams.get('paciente_id') || '';
     const prontuario_id = url.searchParams.get('prontuario_id') || '';
 
+    const todos = url.searchParams.get('todos') === '1';
     let query = `SELECT * FROM arquivos WHERE 1=1`;
     const params = [];
-    if (paciente_id)   { query += ' AND paciente_id = ?';   params.push(paciente_id); }
-    if (prontuario_id) { query += ' AND prontuario_id = ?'; params.push(prontuario_id); }
+    if (!todos) {
+      if (paciente_id)   { query += ' AND paciente_id = ?';   params.push(paciente_id); }
+      if (prontuario_id) { query += ' AND prontuario_id = ?'; params.push(prontuario_id); }
+    }
     query += ' ORDER BY criado_em DESC';
 
     const result = await env.DB.prepare(query).bind(...params).all();
