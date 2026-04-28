@@ -1679,6 +1679,7 @@ async function abrirProntuario(pacienteId) {
   document.getElementById('search-input').style.display = 'none';
 
   await loadProntuarios(pacienteId);
+  await loadDocumentos(pacienteId);
 }
 
 async function loadProntuarios(pacienteId) {
@@ -1936,6 +1937,184 @@ function abrirProntuarioAgendamento(agendamentoId) {
   if (!ag) return;
   const pac = state.pacientes.find(p => p.id === ag.paciente_id);
   if (pac) abrirProntuario(pac.id);
+}
+
+
+// ══════════════════════════════════════════════
+// DOCUMENTOS (Atestados, Exames, Receitas)
+// ══════════════════════════════════════════════
+const docState = { tipo: null, prontuarioId: null, editingId: null };
+
+function novoDocumento(tipo, prontuarioId) {
+  docState.tipo = tipo;
+  docState.prontuarioId = prontuarioId || null;
+  docState.editingId = null;
+  document.getElementById('doc-conteudo').value = '';
+  document.getElementById('doc-data').value = new Date().toISOString().slice(0, 10);
+  const titulos = { atestado: '📄 Atestado Médico', exames: '🔬 Pedido de Exames', receita: '💊 Receita Médica' };
+  document.getElementById('modal-doc-title').textContent = titulos[tipo] || 'Novo Documento';
+  document.getElementById('modal-doc-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('doc-conteudo').focus(), 100);
+}
+
+async function editDocumento(id) {
+  const res = await API.get('/api/documentos/' + id);
+  if (!res.ok) { toast('Erro ao carregar documento', 'error'); return; }
+  const d = res.data;
+  docState.tipo = d.tipo;
+  docState.prontuarioId = d.prontuario_id;
+  docState.editingId = id;
+  document.getElementById('doc-conteudo').value = d.conteudo;
+  document.getElementById('doc-data').value = d.data;
+  const titulos = { atestado: '📄 Atestado Médico', exames: '🔬 Pedido de Exames', receita: '💊 Receita Médica' };
+  document.getElementById('modal-doc-title').textContent = 'Editar — ' + (titulos[d.tipo] || d.tipo);
+  document.getElementById('modal-doc-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModalDoc() {
+  document.getElementById('modal-doc-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  docState.editingId = null;
+}
+
+async function saveDocumento() {
+  const conteudo = document.getElementById('doc-conteudo').value.trim();
+  const data     = document.getElementById('doc-data').value;
+  if (!conteudo) { toast('Preencha o conteúdo do documento', 'error'); return; }
+
+  const btn = document.getElementById('btn-save-doc');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+
+  let res;
+  if (docState.editingId) {
+    res = await API.put('/api/documentos/' + docState.editingId, { conteudo, data });
+  } else {
+    res = await API.post('/api/documentos', {
+      prontuario_id: docState.prontuarioId,
+      paciente_id:   prontState.pacienteAtual?.id,
+      medico_id:     auth.usuario?.medico_id || null,
+      tipo:          docState.tipo,
+      conteudo,
+      data
+    });
+  }
+
+  btn.disabled = false; btn.textContent = 'Salvar';
+  if (!res.ok) { toast(res.error || 'Erro ao salvar', 'error'); return; }
+  toast('Documento salvo!');
+  closeModalDoc();
+  if (prontState.pacienteAtual) loadDocumentos(prontState.pacienteAtual.id);
+}
+
+async function confirmDeleteDocumento(id) {
+  if (!confirm('Excluir este documento?')) return;
+  const res = await API.del('/api/documentos/' + id);
+  if (!res.ok) { toast('Erro ao excluir', 'error'); return; }
+  toast('Documento excluído');
+  if (prontState.pacienteAtual) loadDocumentos(prontState.pacienteAtual.id);
+}
+
+async function loadDocumentos(pacienteId) {
+  const res = await API.get('/api/documentos?paciente_id=' + pacienteId);
+  if (!res.ok) return;
+  renderDocumentos(res.data);
+}
+
+function renderDocumentos(docs) {
+  const container = document.getElementById('doc-lista');
+  if (!container) return;
+  if (!docs.length) {
+    container.innerHTML = '<div style="color:var(--sub);font-size:12px;padding:8px;text-align:center">Nenhum documento</div>';
+    return;
+  }
+  const icones = { atestado: '📄', exames: '🔬', receita: '💊' };
+  const labels = { atestado: 'Atestado', exames: 'Pedido de Exames', receita: 'Receita' };
+  container.innerHTML = docs.map(d => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:18px">${icones[d.tipo]||'📄'}</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500">${labels[d.tipo]||d.tipo}</div>
+        <div style="font-size:11px;color:var(--sub)">${fmt_date(d.data)} · ${d.medico_nome||''}</div>
+      </div>
+      <button class="btn btn-sm" onclick="imprimirDocumentoId(${d.id})" title="Imprimir" style="padding:3px 8px;font-size:11px">🖨️</button>
+      <button class="btn btn-sm" onclick="editDocumento(${d.id})" style="padding:3px 8px;font-size:11px">✎</button>
+      <button class="btn btn-sm btn-danger" onclick="confirmDeleteDocumento(${d.id})" style="padding:3px 8px;font-size:11px">🗑</button>
+    </div>
+  `).join('');
+}
+
+function imprimirDocumento() {
+  const conteudo = document.getElementById('doc-conteudo').value.trim();
+  if (!conteudo) { toast('Preencha o conteúdo antes de imprimir', 'error'); return; }
+  const pac = prontState.pacienteAtual;
+  const med = auth.usuario;
+  const data = document.getElementById('doc-data').value;
+  const titulos = { atestado: 'ATESTADO MÉDICO', exames: 'PEDIDO DE EXAMES', receita: 'RECEITA MÉDICA' };
+  gerarImpressaoDoc(titulos[docState.tipo] || 'DOCUMENTO', conteudo, pac, med, data);
+}
+
+async function imprimirDocumentoId(id) {
+  const res = await API.get('/api/documentos/' + id);
+  if (!res.ok) { toast('Erro', 'error'); return; }
+  const d = res.data;
+  const titulos = { atestado: 'ATESTADO MÉDICO', exames: 'PEDIDO DE EXAMES', receita: 'RECEITA MÉDICA' };
+  gerarImpressaoDoc(titulos[d.tipo] || 'DOCUMENTO', d.conteudo, { nome: d.paciente_nome, nascimento: d.paciente_nascimento }, { nome: d.medico_nome, medico_crm: d.medico_crm, especialidade: d.especialidade }, d.data);
+}
+
+function gerarImpressaoDoc(titulo, conteudo, pac, med, data) {
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>${titulo}</title>
+<style>
+  @page { size: A4 portrait; margin: 20mm 15mm; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #222; }
+  .header { border-bottom: 2px solid #185FA5; padding-bottom: 12px; margin-bottom: 16px; display:flex; justify-content:space-between; align-items:flex-end; }
+  .clinica { font-size:18px; font-weight:bold; color:#185FA5; }
+  .medico { text-align:right; font-size:12px; color:#555; }
+  .titulo { text-align:center; font-size:16px; font-weight:bold; letter-spacing:2px; margin:20px 0; padding:10px; border:1.5px solid #185FA5; border-radius:6px; color:#185FA5; }
+  .paciente { background:#f5f7fb; border-radius:6px; padding:10px 14px; margin-bottom:20px; font-size:12px; }
+  .paciente strong { color:#185FA5; }
+  .conteudo { font-size:13px; line-height:1.8; white-space:pre-wrap; min-height:180px; }
+  .footer { margin-top:60px; border-top:1px solid #ddd; padding-top:16px; display:flex; justify-content:space-between; align-items:flex-end; }
+  .assinatura { text-align:center; }
+  .assinatura-linha { border-top:1px solid #333; width:220px; margin:0 auto 6px; padding-top:6px; font-size:12px; }
+  .data-local { font-size:11px; color:#777; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="clinica">🏥 ClinicaAOGIC</div>
+  <div class="medico">
+    <div><strong>${med?.nome || ''}</strong></div>
+    <div>CRM: ${med?.medico_crm || med?.crm || '—'}</div>
+    <div>${med?.especialidade || ''}</div>
+  </div>
+</div>
+<div class="titulo">${titulo}</div>
+<div class="paciente">
+  <strong>Paciente:</strong> ${pac?.nome || '—'} &nbsp;|&nbsp;
+  <strong>Nascimento:</strong> ${fmt_date(pac?.nascimento) || '—'}
+</div>
+<div class="conteudo">${conteudo}</div>
+<div class="footer">
+  <div class="data-local">Data: ${fmt_date(data) || new Date().toLocaleDateString('pt-BR')}</div>
+  <div class="assinatura">
+    <div class="assinatura-linha">${med?.nome || ''}</div>
+    <div style="font-size:11px;color:#555">CRM ${med?.medico_crm || med?.crm || '—'}</div>
+  </div>
+</div>
+</body>
+</html>`;
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
 }
 
 // ══════════════════════════════════════════════
