@@ -1,5 +1,5 @@
 // public/js/app.js
- 
+
 // ── Estado global ──────────────────────────────────────────────
 const state = {
   pacientes: [], medicos: [], agendamentos: [],
@@ -745,6 +745,66 @@ function newAgendamento() {
 
 function openModalAgendamento(title) { $('#modal-ag-title').textContent=title; $('#modal-ag-overlay').classList.add('open'); document.body.style.overflow='hidden'; }
 function closeModalAgendamento() { $('#modal-ag-overlay').classList.remove('open'); document.body.style.overflow=''; state.editingId=null; }
+
+function toggleNovoPacienteRapido() {
+  const div = document.getElementById('novo-pac-rapido');
+  const visible = div.style.display !== 'none';
+  div.style.display = visible ? 'none' : '';
+  if (!visible) {
+    // Limpar campos
+    document.getElementById('rp-nome').value = '';
+    document.getElementById('rp-telefone').value = '';
+    document.getElementById('rp-cpf').value = '';
+    document.getElementById('rp-nascimento').value = '';
+    document.getElementById('rp-valor').value = '';
+    document.getElementById('rp-convenio').value = 'Particular';
+    setTimeout(() => document.getElementById('rp-nome').focus(), 100);
+  }
+}
+
+async function salvarPacienteRapido() {
+  const nome = document.getElementById('rp-nome').value.trim();
+  const telefone = document.getElementById('rp-telefone').value.trim();
+  if (!nome || !telefone) { toast('Nome e telefone são obrigatórios', 'error'); return; }
+
+  const btn = document.querySelector('#novo-pac-rapido button:last-child');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+
+  const data = {
+    nome,
+    telefone,
+    cpf:            document.getElementById('rp-cpf').value.trim() || '000.000.000-00',
+    nascimento:     document.getElementById('rp-nascimento').value || '2000-01-01',
+    sexo:           'O',
+    email:          '',
+    convenio:       document.getElementById('rp-convenio').value,
+    valor_consulta: parseFloat(document.getElementById('rp-valor').value) || 0,
+    status:         'ativo',
+    observacoes:    ''
+  };
+
+  const res = await API.post('/api/pacientes', data);
+  btn.disabled = false; btn.textContent = '💾 Salvar paciente';
+
+  if (!res.ok) { toast(res.error || 'Erro ao salvar', 'error'); return; }
+
+  toast(`${nome} cadastrado com sucesso!`);
+
+  // Recarregar lista de pacientes e selecionar o novo
+  await loadPacientes();
+  const select = document.getElementById('fa-paciente');
+  select.innerHTML = '<option value="">Selecione o paciente...</option>' +
+    state.pacientes.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+
+  // Selecionar paciente recém criado
+  if (res.id) {
+    select.value = res.id;
+    onPacienteSelect(res.id);
+  }
+
+  // Fechar mini formulário
+  toggleNovoPacienteRapido();
+}
 
 function onPacienteSelect(val) {
   const pac = state.pacientes.find(p=>p.id==val);
