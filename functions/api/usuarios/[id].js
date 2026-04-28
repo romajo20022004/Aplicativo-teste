@@ -1,5 +1,4 @@
 // functions/api/usuarios/[id].js
-
 async function hashSenha(senha) {
   const salt = 'clinicaapp_salt_2026';
   const data = new TextEncoder().encode(salt + senha);
@@ -30,7 +29,9 @@ export async function onRequestPut({ env, params, request }) {
 
 export async function onRequestDelete({ env, params }) {
   try {
-    await env.DB.prepare('DELETE FROM usuarios WHERE id=?').bind(params.id).run();
+    // Remover sessões ativas antes de excluir o usuário
+    await env.DB.prepare('DELETE FROM sessoes WHERE usuario_id = ?').bind(params.id).run();
+    await env.DB.prepare('DELETE FROM usuarios WHERE id = ?').bind(params.id).run();
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ ok: false, error: e.message }, { status: 500 });
