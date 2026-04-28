@@ -1680,6 +1680,7 @@ async function abrirProntuario(pacienteId) {
 
   await loadProntuarios(pacienteId);
   await loadDocumentos(pacienteId);
+  await loadArquivos(pacienteId);
 }
 
 async function loadProntuarios(pacienteId) {
@@ -1939,6 +1940,84 @@ function abrirProntuarioAgendamento(agendamentoId) {
   if (pac) abrirProntuario(pac.id);
 }
 
+
+
+// ══════════════════════════════════════════════
+// ARQUIVOS (Upload de exames e fotos)
+// ══════════════════════════════════════════════
+async function loadArquivos(pacienteId) {
+  const res = await API.get('/api/arquivos?paciente_id=' + pacienteId);
+  if (!res.ok) return;
+  renderArquivos(res.data);
+}
+
+function renderArquivos(arquivos) {
+  const container = document.getElementById('arq-lista');
+  if (!container) return;
+  if (!arquivos.length) {
+    container.innerHTML = '<div style="color:var(--sub);font-size:12px;padding:8px;text-align:center">Nenhum arquivo</div>';
+    return;
+  }
+  container.innerHTML = arquivos.map(a => {
+    const isPdf = a.tipo_mime === 'application/pdf';
+    const isImg = a.tipo_mime.startsWith('image/');
+    const icone = isPdf ? '📄' : isImg ? '🖼️' : '📎';
+    const tam   = a.tamanho < 1024*1024 ? Math.round(a.tamanho/1024) + ' KB' : (a.tamanho/1024/1024).toFixed(1) + ' MB';
+    return `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <span style="font-size:20px">${icone}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nome_original}</div>
+        <div style="font-size:11px;color:var(--sub)">${tam} · ${fmt_date(a.criado_em?.slice(0,10))}${a.descricao ? ' · ' + a.descricao : ''}</div>
+      </div>
+      <button class="btn btn-sm" onclick="visualizarArquivo(${a.id})" style="padding:3px 8px;font-size:11px" title="Visualizar">👁️</button>
+      <button class="btn btn-sm btn-danger" onclick="confirmDeleteArquivo(${a.id},'${a.nome_original.replace(/'/g,"\'")}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function visualizarArquivo(id) {
+  window.open('/api/arquivos/' + id + '?download=1', '_blank');
+}
+
+async function confirmDeleteArquivo(id, nome) {
+  if (!confirm(`Excluir "${nome}"?`)) return;
+  const res = await API.del('/api/arquivos/' + id);
+  if (!res.ok) { toast('Erro ao excluir', 'error'); return; }
+  toast('Arquivo excluído');
+  if (prontState.pacienteAtual) loadArquivos(prontState.pacienteAtual.id);
+}
+
+async function uploadArquivo() {
+  const input = document.getElementById('arq-input');
+  const desc  = document.getElementById('arq-desc').value.trim();
+  const file  = input.files[0];
+  if (!file) { toast('Selecione um arquivo', 'error'); return; }
+  if (file.size > 2 * 1024 * 1024) { toast('Arquivo muito grande — máximo 2MB', 'error'); return; }
+
+  const btn = document.getElementById('btn-upload-arq');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('paciente_id', prontState.pacienteAtual?.id);
+  formData.append('descricao', desc);
+
+  const r = await fetch('/api/arquivos', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${auth.token}` },
+    body: formData
+  });
+  const res = await r.json();
+
+  btn.disabled = false; btn.textContent = '⬆️ Enviar';
+
+  if (!res.ok) { toast(res.error || 'Erro ao enviar', 'error'); return; }
+  toast('Arquivo enviado com sucesso!');
+  input.value = '';
+  document.getElementById('arq-desc').value = '';
+  if (prontState.pacienteAtual) loadArquivos(prontState.pacienteAtual.id);
+}
 
 // ══════════════════════════════════════════════
 // DOCUMENTOS (Atestados, Exames, Receitas)
