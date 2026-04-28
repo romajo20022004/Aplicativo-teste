@@ -1,5 +1,5 @@
 // public/js/app.js
- 
+
 // ── Estado global ──────────────────────────────────────────────
 const state = {
   pacientes: [], medicos: [], agendamentos: [],
