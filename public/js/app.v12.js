@@ -1,5 +1,5 @@
 // public/js/app.js
- 
+
 // ── Estado global ──────────────────────────────────────────────
 const state = {
   pacientes: [], medicos: [], agendamentos: [],
@@ -986,20 +986,41 @@ async function marcarRealizado(id, pago) {
   const res = await API.put('/api/agendamentos/' + id, data);
   if (!res.ok) { toast('Erro ao atualizar', 'error'); return; }
 
-  // Criar lançamento financeiro
+  // Verificar se já existe lançamento para este agendamento
+  const lancRes = await API.get('/api/financeiro?data_ini=2020-01-01&data_fim=2099-12-31');
   const pac = state.pacientes.find(p => p.id === ag.paciente_id);
-  await API.post('/api/financeiro', {
-    tipo:          'receita',
-    categoria:     pac?.convenio || 'Particular',
-    descricao:     `Consulta — ${ag.paciente_nome} (${ag.tipo})`,
-    valor:         ag.valor,
-    data:          ag.data,
-    medico_id:     ag.medico_id,
-    agendamento_id: id,
-    status:        pago ? 'confirmado' : 'pendente',
-    forma_pgto:    pago ? 'dinheiro' : 'pendente',
-    observacoes:   ''
-  });
+
+  if (lancRes.ok) {
+    const lancExistente = lancRes.lancamentos?.find(l => l.agendamento_id === id);
+    if (lancExistente) {
+      // Atualizar lançamento existente
+      await API.put('/api/financeiro/' + lancExistente.id, {
+        tipo:        lancExistente.tipo,
+        categoria:   lancExistente.categoria,
+        descricao:   lancExistente.descricao,
+        valor:       ag.valor,
+        data:        lancExistente.data,
+        medico_id:   lancExistente.medico_id,
+        status:      pago ? 'confirmado' : 'pendente',
+        forma_pgto:  pago ? 'dinheiro' : 'pendente',
+        observacoes: lancExistente.observacoes || ''
+      });
+    } else {
+      // Criar novo lançamento
+      await API.post('/api/financeiro', {
+        tipo:          'receita',
+        categoria:     pac?.convenio || 'Particular',
+        descricao:     `Consulta — ${ag.paciente_nome} (${ag.tipo})`,
+        valor:         ag.valor,
+        data:          ag.data,
+        medico_id:     ag.medico_id,
+        agendamento_id: id,
+        status:        pago ? 'confirmado' : 'pendente',
+        forma_pgto:    pago ? 'dinheiro' : 'pendente',
+        observacoes:   ''
+      });
+    }
+  }
 
   toast(pago ? '💰 Consulta realizada e pagamento confirmado!' : '✔ Consulta marcada como realizada!');
   loadAgenda();
