@@ -187,6 +187,31 @@ async function loadDashboard() {
     }
   }
 
+  // Storage usage
+  const storageEl = document.getElementById('dash-storage');
+  if (storageEl) {
+    try {
+      const arqAll = await fetch('/api/arquivos?todos=1', { headers: apiHeaders() });
+      const arqData = await arqAll.json();
+      if (arqData.ok) {
+        const totalBytes = arqData.data.reduce((s, a) => s + (a.tamanho || 0), 0);
+        const totalMB = (totalBytes / 1024 / 1024).toFixed(1);
+        const totalGB = (totalBytes / 1024 / 1024 / 1024).toFixed(2);
+        const limitGB = 10;
+        const pct = Math.min(((totalBytes / 1024 / 1024 / 1024) / limitGB) * 100, 100).toFixed(1);
+        const cor = pct < 50 ? '#0F6E56' : pct < 80 ? '#854F0B' : '#A32D2D';
+        storageEl.innerHTML = `
+          <div style="font-size:11px;color:var(--sub);margin-bottom:6px">Arquivos no R2</div>
+          <div style="font-size:18px;font-weight:600;color:${cor}">${totalMB} MB <span style="font-size:12px;color:var(--sub)">/ 10 GB</span></div>
+          <div style="margin-top:8px;height:6px;background:#eee;border-radius:3px">
+            <div style="height:6px;border-radius:3px;background:${cor};width:${pct}%"></div>
+          </div>
+          <div style="font-size:11px;color:var(--sub);margin-top:4px">${pct}% utilizado · ${arqData.data.length} arquivo(s)</div>
+        `;
+      }
+    } catch(e) {}
+  }
+
   const ultEl = document.getElementById('dash-ultimos-pac');
   if (ultEl) {
     if (!res.ultimosPacientes.length) {
