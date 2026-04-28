@@ -31,15 +31,15 @@ export async function onRequestPost({ env, request }) {
       "DELETE FROM sessoes WHERE usuario_id = ? AND expira_em < datetime('now')"
     ).bind(usuario.id).run();
 
-    // Verificar sessões ativas — limite de 2
+    // Verificar sessões ativas — limite de 2 (usando rowid)
     const sessoes = await env.DB.prepare(
-      "SELECT id FROM sessoes WHERE usuario_id = ? ORDER BY criado_em ASC"
+      "SELECT rowid FROM sessoes WHERE usuario_id = ? ORDER BY rowid ASC"
     ).bind(usuario.id).all();
 
     if (sessoes.results.length >= 2) {
-      // Remover a sessão mais antiga para abrir espaço
+      // Remover a sessão mais antiga
       const maisAntiga = sessoes.results[0];
-      await env.DB.prepare('DELETE FROM sessoes WHERE id = ?').bind(maisAntiga.id).run();
+      await env.DB.prepare('DELETE FROM sessoes WHERE rowid = ?').bind(maisAntiga.rowid).run();
     }
 
     // Criar nova sessão
