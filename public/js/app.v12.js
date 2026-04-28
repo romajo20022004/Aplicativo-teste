@@ -922,6 +922,42 @@ async function saveAgendamento() {
     toast(state.editingId?'Agendamento atualizado!':'Agendamento criado!');
   }
 
+  // Sincronizar lançamento financeiro quando status muda
+  if (state.editingId) {
+    const lancRes = await API.get('/api/financeiro?data_ini=2020-01-01&data_fim=2099-12-31');
+    if (lancRes.ok) {
+      const lanc = lancRes.lancamentos?.find(l => l.agendamento_id === state.editingId);
+      if (lanc) {
+        if (data.status_agenda === 'cancelado') {
+          // Cancelado → remover lançamento
+          await API.del('/api/financeiro/' + lanc.id);
+          toast('Agendamento cancelado e lançamento removido.');
+        } else if (data.status_agenda !== 'realizado') {
+          // Voltou para agendado/confirmado/faltou → lançamento pendente
+          await API.put('/api/financeiro/' + lanc.id, {
+            ...lanc,
+            status:    'pendente',
+            forma_pgto:'pendente',
+            valor:     data.valor,
+            medico_id: lanc.medico_id,
+            observacoes: lanc.observacoes || ''
+          });
+          toast('Status atualizado — lançamento financeiro voltou para Pendente.');
+        } else if (data.status_agenda === 'realizado') {
+          // Continua realizado — atualizar valor e status pgto
+          await API.put('/api/financeiro/' + lanc.id, {
+            ...lanc,
+            status:    data.status_pgto === 'pago' ? 'confirmado' : 'pendente',
+            forma_pgto:data.status_pgto === 'pago' ? 'dinheiro'  : 'pendente',
+            valor:     data.valor,
+            medico_id: lanc.medico_id,
+            observacoes: lanc.observacoes || ''
+          });
+        }
+      }
+    }
+  }
+
   state._agendamentoStatusAnterior = null;
   closeModalAgendamento(); loadAgenda();
 }
