@@ -394,6 +394,19 @@
         <div id="prnt-lista" style="display:flex;flex-direction:column;gap:12px">
           <div class="tbl-empty" style="padding:32px;text-align:center">Carregando...</div>
         </div>
+
+        <!-- Documentos do paciente -->
+        <div style="margin-top:24px;border-top:2px solid var(--border);padding-top:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:13px;font-weight:600;color:var(--blue)">📋 Documentos</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" onclick="novoDocumento('atestado')" style="background:var(--teal);color:#fff;border-color:var(--teal);font-size:11px">📄 Atestado</button>
+              <button class="btn btn-sm" onclick="novoDocumento('exames')" style="background:var(--blue);color:#fff;border-color:var(--blue);font-size:11px">🔬 Exames</button>
+              <button class="btn btn-sm" onclick="novoDocumento('receita')" style="background:#7c3aed;color:#fff;border-color:#7c3aed;font-size:11px">💊 Receita</button>
+            </div>
+          </div>
+          <div id="doc-lista"></div>
+        </div>
       </div>
 
       <!-- Usuários -->
@@ -664,5 +677,30 @@
 </div>
 
 <script src="/js/app.v12.js"></script>
+
+  <!-- Modal Documento -->
+  <div class="modal-overlay" id="modal-doc-overlay">
+    <div class="modal" style="max-width:680px">
+      <div class="modal-head">
+        <h3 class="modal-title" id="modal-doc-title">Novo Documento</h3>
+        <button class="modal-close" onclick="closeModalDoc()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Conteúdo <span class="req">*</span></label>
+          <textarea id="doc-conteudo" rows="12" placeholder="Digite ou cole o conteúdo aqui..." style="width:100%;font-family:monospace;font-size:13px;line-height:1.6"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Data do documento</label>
+          <input type="date" id="doc-data" style="max-width:200px" />
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModalDoc()">Cancelar</button>
+        <button class="btn" id="btn-imprimir-doc" onclick="imprimirDocumento()" style="background:var(--blue);color:#fff;border-color:var(--blue)">🖨️ Imprimir</button>
+        <button class="btn btn-primary" id="btn-save-doc" onclick="saveDocumento()">Salvar</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
