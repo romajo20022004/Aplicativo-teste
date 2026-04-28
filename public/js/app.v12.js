@@ -80,6 +80,9 @@ async function login(email, senha) {
   auth.token = data.token; auth.usuario = data.usuario;
   localStorage.setItem('clinica_token', data.token);
   localStorage.setItem('clinica_usuario', JSON.stringify(data.usuario));
+  // Limpar cache do perfil anterior
+  state.pacientes = []; state.medicos = []; state.agendamentos = [];
+  state.editingId = null; state.editingType = null;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'flex';
   iniciarApp();
