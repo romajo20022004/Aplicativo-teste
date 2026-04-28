@@ -1,5 +1,4 @@
 // functions/api/auth/login.js
-
 async function hashSenha(senha) {
   const salt = 'clinicaapp_salt_2026';
   const data = new TextEncoder().encode(salt + senha);
@@ -16,17 +15,54 @@ function gerarToken() {
 export async function onRequestPost({ env, request }) {
   try {
     const { email, senha } = await request.json();
-    if (!email || !senha) return Response.json({ ok: false, error: 'E-mail e senha são obrigatórios' }, { status: 400 });
+    if (!email || !senha)
+      return Response.json({ ok: false, error: 'E-mail e senha são obrigatórios' }, { status: 400 });
+
     const senhaHash = await hashSenha(senha);
-    const usuario = await env.DB.prepare('SELECT * FROM usuarios WHERE email = ? AND senha_hash = ? AND ativo = 1')
-      .bind(email.toLowerCase().trim(), senhaHash).first();
-    if (!usuario) return Response.json({ ok: false, error: 'E-mail ou senha incorretos' }, { status: 401 });
-    const token = gerarToken();
-    const expira = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
-    await env.DB.prepare('INSERT INTO sessoes (usuario_id, token, expira_em) VALUES (?,?,?)')
-      .bind(usuario.id, token, expira).run();
-    await env.DB.prepare("DELETE FROM sessoes WHERE usuario_id = ? AND expira_em < datetime('now')")
-      .bind(usuario.id).run();
-    return Response.json({ ok: true, token, usuario: { id: usuario.id, nome: usuario.nome, email: usuario.email, perfil: usuario.perfil, medico_id: usuario.medico_id } });
-  } catch (e) { return Response.json({ ok: false, error: e.message }, { status: 500 }); }
+    const usuario = await env.DB.prepare(
+      'SELECT * FROM usuarios WHERE email = ? AND senha_hash = ? AND ativo = 1'
+    ).bind(email.toLowerCase().trim(), senhaHash).first();
+
+    if (!usuario)
+      return Response.json({ ok: false, error: 'E-mail ou senha incorretos' }, { status: 401 });
+
+    // Remover sessões expiradas
+    await env.DB.prepare(
+      "DELETE FROM sessoes WHERE usuario_id = ? AND expira_em < datetime('now')"
+    ).bind(usuario.id).run();
+
+    // Verificar sessões ativas — limite de 2
+    const sessoes = await env.DB.prepare(
+      "SELECT id FROM sessoes WHERE usuario_id = ? ORDER BY criado_em ASC"
+    ).bind(usuario.id).all();
+
+    if (sessoes.results.length >= 2) {
+      // Remover a sessão mais antiga para abrir espaço
+      const maisAntiga = sessoes.results[0];
+      await env.DB.prepare('DELETE FROM sessoes WHERE id = ?').bind(maisAntiga.id).run();
+    }
+
+    // Criar nova sessão
+    const token  = gerarToken();
+    const expira = new Date(Date.now() + 8 * 60 * 60 * 1000)
+      .toISOString().replace('T', ' ').slice(0, 19);
+
+    await env.DB.prepare(
+      'INSERT INTO sessoes (usuario_id, token, expira_em) VALUES (?,?,?)'
+    ).bind(usuario.id, token, expira).run();
+
+    return Response.json({
+      ok: true,
+      token,
+      usuario: {
+        id:        usuario.id,
+        nome:      usuario.nome,
+        email:     usuario.email,
+        perfil:    usuario.perfil,
+        medico_id: usuario.medico_id
+      }
+    });
+  } catch (e) {
+    return Response.json({ ok: false, error: e.message }, { status: 500 });
+  }
 }
