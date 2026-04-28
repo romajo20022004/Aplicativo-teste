@@ -1,5 +1,5 @@
 # ClinicaApp 🏥
-    
+     
 Sistema de gestão de consultório médico — Cloudflare Pages + D1 + Workers Functions.    
     
 ## Stack
