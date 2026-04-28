@@ -787,6 +787,21 @@ async function saveAgendamento() {
     observacoes: $('#fa-obs').value.trim()
   };
   if(!data.paciente_id||!data.medico_id||!$('#fa-data').value) { toast('Paciente, médico e data são obrigatórios','error'); return; }
+
+  // Verificar conflito de horário
+  const conflito = state.agendamentos.find(a =>
+    a.medico_id === data.medico_id &&
+    a.data === data.data &&
+    a.hora === data.hora &&
+    a.status_agenda !== 'cancelado' &&
+    a.id !== state.editingId
+  );
+  if (conflito) {
+    const pac = state.pacientes.find(p => p.id === conflito.paciente_id);
+    const nomePac = pac ? pac.nome : 'outro paciente';
+    if (!confirm(`⚠️ Conflito de horário!\n\nJá existe agendamento às ${data.hora} para ${nomePac}.\n\nDeseja criar um encaixe mesmo assim?`)) return;
+  }
+
   const btn=$('#btn-save-ag'); btn.disabled=true; btn.innerHTML='<div class="spinner"></div>';
 
   const eraRealizado = state.editingId ? (state._agendamentoStatusAnterior === 'realizado') : false;
