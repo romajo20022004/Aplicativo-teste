@@ -697,6 +697,10 @@ function renderAgenda() {
           </div>
           <div class="slot-actions">
             <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#25D366;color:#fff;border-color:#25D366" onclick="enviarLembreteConsulta(${ag.id})" title="Lembrete WhatsApp">📱</button>
+            ${ag.status_agenda !== 'realizado' && ag.status_agenda !== 'cancelado' ? `
+            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#3B6D11;color:#fff;border-color:#3B6D11" onclick="marcarRealizado(${ag.id}, false)" title="Marcar como realizado">✔ Realizado</button>
+            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#0F6E56;color:#fff;border-color:#0F6E56" onclick="marcarRealizado(${ag.id}, true)" title="Marcar como realizado e pago">💰 Pago</button>
+            ` : ''}
             <button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="editAgendamento(${ag.id})">✎</button>
             <button class="btn btn-sm btn-danger" style="padding:2px 7px;font-size:10px" onclick="confirmDeleteAgendamento(${ag.id})">🗑</button>
           </div>
@@ -920,6 +924,46 @@ async function saveAgendamento() {
 
   state._agendamentoStatusAnterior = null;
   closeModalAgendamento(); loadAgenda();
+}
+
+async function marcarRealizado(id, pago) {
+  const ag = state.agendamentos.find(a => a.id === id);
+  if (!ag) return;
+
+  const status_pgto = pago ? 'pago' : ag.status_pgto;
+  const data = {
+    paciente_id:   ag.paciente_id,
+    medico_id:     ag.medico_id,
+    data:          ag.data,
+    hora:          ag.hora,
+    duracao_min:   ag.duracao_min,
+    tipo:          ag.tipo,
+    valor:         ag.valor,
+    status_pgto:   status_pgto,
+    status_agenda: 'realizado',
+    observacoes:   ag.observacoes || ''
+  };
+
+  const res = await API.put('/api/agendamentos/' + id, data);
+  if (!res.ok) { toast('Erro ao atualizar', 'error'); return; }
+
+  // Criar lançamento financeiro
+  const pac = state.pacientes.find(p => p.id === ag.paciente_id);
+  await API.post('/api/financeiro', {
+    tipo:          'receita',
+    categoria:     pac?.convenio || 'Particular',
+    descricao:     `Consulta — ${ag.paciente_nome} (${ag.tipo})`,
+    valor:         ag.valor,
+    data:          ag.data,
+    medico_id:     ag.medico_id,
+    agendamento_id: id,
+    status:        pago ? 'confirmado' : 'pendente',
+    forma_pgto:    pago ? 'dinheiro' : 'pendente',
+    observacoes:   ''
+  });
+
+  toast(pago ? '💰 Consulta realizada e pagamento confirmado!' : '✔ Consulta marcada como realizada!');
+  loadAgenda();
 }
 
 async function confirmDeleteAgendamento(id) {
