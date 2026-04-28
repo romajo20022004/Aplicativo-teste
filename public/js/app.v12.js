@@ -1,5 +1,5 @@
 // public/js/app.js
- 
+
 // ── Estado global ──────────────────────────────────────────────
 const state = {
   pacientes: [], medicos: [], agendamentos: [],
@@ -675,9 +675,10 @@ function renderAgenda() {
     : state.medicos.filter(m=>m.status==='ativo');
   if(!medAtivos.length) { container.innerHTML='<div class="coming-soon"><p>Nenhum médico ativo cadastrado</p></div>'; return; }
 
-  const horas = ['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30',
-                 '12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30',
-                 '17:00','17:30','18:00'];
+  const horas = ['07:00','07:20','07:40','08:00','08:20','08:40','09:00','09:20','09:40',
+                 '10:00','10:20','10:40','11:00','11:20','11:40','12:00','12:20','12:40',
+                 '13:00','13:20','13:40','14:00','14:20','14:40','15:00','15:20','15:40',
+                 '16:00','16:20','16:40','17:00','17:20','17:40','18:00'];
 
   container.innerHTML = medAtivos.map(med => {
     const agendMed = state.agendamentos.filter(a=>a.medico_id===med.id);
