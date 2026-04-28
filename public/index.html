@@ -407,6 +407,18 @@
           </div>
           <div id="doc-lista"></div>
         </div>
+
+        <!-- Arquivos do paciente -->
+        <div style="margin-top:24px;border-top:2px solid var(--border);padding-top:16px">
+          <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:12px">📁 Arquivos (Exames e Fotos)</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+            <input type="file" id="arq-input" accept=".jpg,.jpeg,.png,.pdf,.webp" style="flex:1;min-width:200px;font-size:12px" />
+            <input type="text" id="arq-desc" placeholder="Descrição (ex: Raio-X, Hemograma...)" style="flex:1;min-width:180px;font-size:12px" />
+            <button class="btn btn-sm" id="btn-upload-arq" onclick="uploadArquivo()" style="background:var(--blue);color:#fff;border-color:var(--blue);white-space:nowrap">⬆️ Enviar</button>
+          </div>
+          <div style="font-size:11px;color:var(--sub);margin-bottom:10px">Formatos aceitos: JPG, PNG, PDF · Máximo 2MB por arquivo</div>
+          <div id="arq-lista"></div>
+        </div>
       </div>
 
       <!-- Usuários -->
