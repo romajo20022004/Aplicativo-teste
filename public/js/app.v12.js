@@ -1953,25 +1953,17 @@ async function enviarAgendaMedico(medicoId) {
   const ags = res.data;
   const dataFmt = new Date(state.agendaDate + 'T00:00:00').toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
 
-  let msg = `🏥 *ClinicaAOGIC — Agenda do dia*\n`;
-  msg += `📅 ${dataFmt}\n`;
-  msg += `👨‍⚕️ ${med.nome} — ${med.especialidade}\n\n`;
+  const dataSimples = new Date(state.agendaDate + 'T00:00:00').toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit' });
+  let msg = `Agenda ${dataSimples} — ${med.nome.split(' ')[0]} ${med.nome.split(' ').slice(-1)[0]}\n`;
 
   const ativos = ags.filter(a => a.status_agenda !== 'cancelado');
   if (!ativos.length) {
-    msg += `Nenhuma consulta agendada para hoje.`;
+    msg += `Sem consultas hoje.`;
   } else {
-    msg += `*${ativos.length} consulta(s) agendada(s):*\n\n`;
     ativos.forEach(ag => {
-      const statusEmoji = { agendado:'📋', confirmado:'✅', realizado:'✔️', cancelado:'❌', faltou:'⚠️' };
-      msg += `${statusEmoji[ag.status_agenda]||'📋'} *${ag.hora}* — ${ag.paciente_nome}\n`;
-      msg += `   ${ag.tipo} · ${ag.duracao_min}min`;
-      if (ag.status_pgto === 'pago') msg += ' - Pago';
-      else if (ag.status_pgto === 'pendente') msg += ' - Pendente';
-      msg += '\n\n';
+      msg += `${ag.hora} ${ag.paciente_nome}\n`;
     });
   }
-  msg += `_Enviado pelo ClinicaAOGIC_`;
   abrirWhatsApp(med.telefone, msg);
 }
 
