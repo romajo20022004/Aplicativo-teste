@@ -661,7 +661,7 @@ async function loadAgenda() {
   $('#agenda-date-label').textContent = dateLabel(state.agendaDate);
   $('#agenda-date-input').value = state.agendaDate;
 
-  const res = await API.get('/api/agendamentos?data='+state.agendaDate);
+  const res = await API.get('/api/agendamentos?data='+state.agendaDate+'&_='+Date.now());
   if(!res.ok) { toast('Erro ao carregar agenda','error'); return; }
   state.agendamentos = res.data;
   renderAgenda();
@@ -959,7 +959,10 @@ async function saveAgendamento() {
   }
 
   state._agendamentoStatusAnterior = null;
-  closeModalAgendamento(); state.agendamentos = []; await loadAgenda();
+  closeModalAgendamento();
+  state.agendamentos = [];
+  state.pacientes = [];
+  await loadAgenda();
 }
 
 async function marcarRealizado(id, pago) {
