@@ -45,9 +45,42 @@ export async function onRequestPut({ env, params, request }) {
   }
 }
 
-export async function onRequestDelete({ env, params }) {
+export async function onRequestDelete({ env, params, request }) {
   try {
-    await env.DB.prepare('DELETE FROM pacientes WHERE id = ?').bind(params.id).run();
+    const url = new URL(request.url);
+    const cascata = url.searchParams.get('cascata') === '1';
+    const id = params.id;
+
+    // Verificar vínculos
+    const agendamentos = await env.DB.prepare('SELECT COUNT(*) as total FROM agendamentos WHERE paciente_id = ?').bind(id).first();
+    const prontuarios  = await env.DB.prepare('SELECT COUNT(*) as total FROM prontuarios WHERE paciente_id = ?').bind(id).first();
+    const lancamentos  = await env.DB.prepare('SELECT COUNT(*) as total FROM lancamentos WHERE agendamento_id IN (SELECT id FROM agendamentos WHERE paciente_id = ?)').bind(id).first();
+
+    const totalAgendamentos = agendamentos?.total || 0;
+    const totalProntuarios  = prontuarios?.total  || 0;
+    const totalLancamentos  = lancamentos?.total  || 0;
+    const temVinculos = totalAgendamentos > 0 || totalProntuarios > 0;
+
+    // Se tem vínculos e não confirmou cascata, retornar aviso
+    if (temVinculos && !cascata) {
+      return Response.json({
+        ok: false,
+        temVinculos: true,
+        agendamentos: totalAgendamentos,
+        prontuarios:  totalProntuarios,
+        lancamentos:  totalLancamentos,
+        error: `Paciente possui ${totalAgendamentos} agendamento(s), ${totalProntuarios} prontuário(s) e ${totalLancamentos} lançamento(s) vinculados.`
+      }, { status: 409 });
+    }
+
+    // Excluir em cascata
+    if (temVinculos && cascata) {
+      await env.DB.prepare('DELETE FROM lancamentos WHERE agendamento_id IN (SELECT id FROM agendamentos WHERE paciente_id = ?)').bind(id).run();
+      await env.DB.prepare('DELETE FROM prontuarios WHERE paciente_id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM agendamentos WHERE paciente_id = ?').bind(id).run();
+    }
+
+    await env.DB.prepare('DELETE FROM pacientes WHERE id = ?').bind(id).run();
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ ok: false, error: e.message }, { status: 500 });
