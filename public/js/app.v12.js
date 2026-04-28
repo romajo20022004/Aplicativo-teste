@@ -560,7 +560,18 @@ async function savePaciente() {
 async function confirmDeletePaciente(id, nome) {
   if(!confirm(`Excluir "${nome}"?`)) return;
   const res = await API.del('/api/pacientes/'+id);
-  if(!res.ok) { toast('Erro ao excluir','error'); return; }
+  if(!res.ok) {
+    if (res.temVinculos) {
+      const msg = `⚠️ ${res.error}\n\nDeseja excluir o paciente e TODOS os registros vinculados?\n\nEsta ação não pode ser desfeita!`;
+      if (!confirm(msg)) return;
+      const res2 = await API.del('/api/pacientes/'+id+'?cascata=1');
+      if (!res2.ok) { toast('Erro ao excluir','error'); return; }
+      toast('Paciente e todos os registros vinculados foram excluídos!');
+      loadPacientes();
+      return;
+    }
+    toast('Erro ao excluir','error'); return;
+  }
   toast('Paciente excluído'); loadPacientes();
 }
 
