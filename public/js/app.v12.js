@@ -721,29 +721,41 @@ function renderAgenda() {
 
   container.innerHTML = medAtivos.map(med => {
     const agendMed = state.agendamentos.filter(a=>a.medico_id===med.id);
-    const slots = horas.map(h => {
-      const ag = agendMed.find(a=>a.hora===h);
-      if(ag) {
+    const slots = horas.map((h, idx) => {
+      const proxH = horas[idx+1] || '18:30';
+      // Pegar todos agendamentos que pertencem a este slot (horário exato ou encaixe próximo)
+      const ags = agendMed.filter(a => {
+        if (a.hora === h) return true; // horário exato
+        if (horas.includes(a.hora)) return false; // outro slot padrão
+        return a.hora >= h && a.hora < proxH; // encaixe neste intervalo
+      });
+
+      if(ags.length > 0) {
+        const renderCards = ags.map(item => {
+        const isEncaixe = item.hora !== h;
         const statusColor = { agendado:'#185FA5', confirmado:'#0F6E56', realizado:'#3B6D11', cancelado:'#A32D2D', faltou:'#854F0B' };
         const pgtoColor   = { pendente:'#854F0B', pago:'#0F6E56', convênio:'#185FA5', isento:'#888' };
-        return `<div class="slot-card" style="border-left-color:${statusColor[ag.status_agenda]||'#185FA5'}">
-          <div class="slot-name">${ag.paciente_nome}</div>
-          <div class="slot-info">${ag.tipo} · ${ag.duracao_min}min</div>
+        return `<div class="slot-card" style="border-left-color:${statusColor[item.status_agenda]||'#185FA5'}${isEncaixe?';border-style:dashed':''}">
+          ${isEncaixe ? `<div style="font-size:9px;background:#854F0B;color:#fff;padding:1px 6px;border-radius:4px;margin-bottom:4px;display:inline-block">⚡ ${item.hora}</div>` : ''}
+          <div class="slot-name">${item.paciente_nome}</div>
+          <div class="slot-info">${item.tipo} · ${item.duracao_min}min</div>
           <div class="slot-footer">
-            <span class="slot-badge" style="background:${statusColor[ag.status_agenda]}22;color:${statusColor[ag.status_agenda]}">${ag.status_agenda}</span>
-            <span class="slot-badge" style="background:${pgtoColor[ag.status_pgto]}22;color:${pgtoColor[ag.status_pgto]}">${ag.status_pgto}</span>
-            <span style="font-size:10px;color:var(--sub);margin-left:auto">${fmt_brl(ag.valor)}</span>
+            <span class="slot-badge" style="background:${statusColor[item.status_agenda]}22;color:${statusColor[item.status_agenda]}">${item.status_agenda}</span>
+            <span class="slot-badge" style="background:${pgtoColor[item.status_pgto]}22;color:${pgtoColor[item.status_pgto]}">${item.status_pgto}</span>
+            <span style="font-size:10px;color:var(--sub);margin-left:auto">${fmt_brl(item.valor)}</span>
           </div>
           <div class="slot-actions">
-            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#25D366;color:#fff;border-color:#25D366" onclick="enviarLembreteConsulta(${ag.id})" title="Lembrete WhatsApp">📱</button>
-            ${ag.status_agenda !== 'realizado' && ag.status_agenda !== 'cancelado' ? `
-            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#3B6D11;color:#fff;border-color:#3B6D11" onclick="marcarRealizado(${ag.id}, false)" title="Marcar como realizado">✔ Realizado</button>
-            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#0F6E56;color:#fff;border-color:#0F6E56" onclick="marcarRealizado(${ag.id}, true)" title="Marcar como realizado e pago">💰 Pago</button>
+            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#25D366;color:#fff;border-color:#25D366" onclick="enviarLembreteConsulta(${item.id})" title="Lembrete WhatsApp">📱</button>
+            ${item.status_agenda !== 'realizado' && item.status_agenda !== 'cancelado' ? `
+            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#3B6D11;color:#fff;border-color:#3B6D11" onclick="marcarRealizado(${item.id}, false)" title="Marcar como realizado">✔ Realizado</button>
+            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px;background:#0F6E56;color:#fff;border-color:#0F6E56" onclick="marcarRealizado(${item.id}, true)" title="Marcar como realizado e pago">💰 Pago</button>
             ` : ''}
-            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="editAgendamento(${ag.id})">✎</button>
-            <button class="btn btn-sm btn-danger" style="padding:2px 7px;font-size:10px" onclick="confirmDeleteAgendamento(${ag.id})">🗑</button>
+            <button class="btn btn-sm" style="padding:2px 7px;font-size:10px" onclick="editAgendamento(${item.id})">✎</button>
+            <button class="btn btn-sm btn-danger" style="padding:2px 7px;font-size:10px" onclick="confirmDeleteAgendamento(${item.id})">🗑</button>
           </div>
         </div>`;
+        }).join('');
+        return renderCards;
       }
       return `<div class="slot-empty" onclick="novoAgendamentoHorario('${med.id}','${h}')">+</div>`;
     });
