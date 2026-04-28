@@ -1184,7 +1184,7 @@ function renderFinanceiro() {
 
   document.getElementById('fin-receita').textContent   = fmt_brl(r.total_receita || 0);
   document.getElementById('fin-despesa').textContent   = fmt_brl(r.total_despesa || 0);
-  document.getElementById('fin-resultado').textContent = fmt_brl((r.total_receita||0) - (r.total_despesa||0));
+  document.getElementById('fin-resultado').textContent = fmt_brl((r.receita_confirmada||0) - (r.total_despesa||0));
   document.getElementById('fin-pendente').textContent  = fmt_brl(r.receita_pendente || 0);
 
   const tbMed = document.getElementById('fin-med-tbody');
