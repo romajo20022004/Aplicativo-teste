@@ -959,7 +959,7 @@ async function saveAgendamento() {
   }
 
   state._agendamentoStatusAnterior = null;
-  closeModalAgendamento(); loadAgenda();
+  closeModalAgendamento(); state.agendamentos = []; await loadAgenda();
 }
 
 async function marcarRealizado(id, pago) {
