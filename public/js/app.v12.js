@@ -969,8 +969,23 @@ async function saveAgendamento() {
         toast('Lançamento financeiro criado!');
       }
     }
+  } else if (!state.editingId) {
+    // Novo agendamento — criar lançamento pendente automaticamente
+    await API.post('/api/financeiro', {
+      tipo:          'receita',
+      categoria:     pac?.convenio || 'Particular',
+      descricao:     `Consulta — ${pac?.nome || 'Paciente'} (${data.tipo})`,
+      valor:         data.valor,
+      data:          data.data,
+      medico_id:     data.medico_id,
+      agendamento_id: agId,
+      status:        'pendente',
+      forma_pgto:    'pendente',
+      observacoes:   ''
+    });
+    toast('Agendamento criado e lançamento financeiro pendente gerado!');
   } else {
-    toast(state.editingId?'Agendamento atualizado!':'Agendamento criado!');
+    toast('Agendamento atualizado!');
   }
 
   // Sincronizar lançamento financeiro quando status muda
