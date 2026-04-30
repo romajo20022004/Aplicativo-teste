@@ -1102,9 +1102,18 @@ async function marcarRealizado(id, pago) {
 
 async function confirmDeleteAgendamento(id) {
   if(!confirm('Excluir este agendamento?')) return;
+
+  // Remover lançamento financeiro vinculado se existir
+  const lancRes = await API.get('/api/financeiro?data_ini=2020-01-01&data_fim=2099-12-31');
+  if (lancRes.ok) {
+    const lanc = lancRes.lancamentos?.find(l => l.agendamento_id === id);
+    if (lanc) await API.del('/api/financeiro/' + lanc.id);
+  }
+
   const res = await API.del('/api/agendamentos/'+id);
   if(!res.ok) { toast('Erro ao excluir','error'); return; }
-  toast('Agendamento excluído'); loadAgenda();
+  toast('Agendamento e lançamento financeiro excluídos!');
+  loadAgenda();
 }
 
 function agendaNavDate(days) {
