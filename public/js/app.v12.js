@@ -2049,15 +2049,49 @@ async function confirmDeleteArquivo(id, nome) {
   if (prontState.pacienteAtual) loadArquivos(prontState.pacienteAtual.id);
 }
 
+async function comprimirImagem(file, qualidade = 0.7, maxWidth = 1920) {
+  return new Promise(resolve => {
+    // Só comprimir imagens
+    if (!file.type.startsWith('image/')) { resolve(file); return; }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        const comprimido = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
+        resolve(comprimido);
+      }, 'image/jpeg', qualidade);
+    };
+    img.src = url;
+  });
+}
+
 async function uploadArquivo() {
   const input = document.getElementById('arq-input');
   const desc  = document.getElementById('arq-desc').value.trim();
-  const file  = input.files[0];
+  let file    = input.files[0];
   if (!file) { toast('Selecione um arquivo', 'error'); return; }
-  if (file.size > 2 * 1024 * 1024) { toast('Arquivo muito grande — máximo 2MB', 'error'); return; }
 
   const btn = document.getElementById('btn-upload-arq');
   btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+
+  // Comprimir imagens automaticamente
+  if (file.type.startsWith('image/')) {
+    const tamanhoOriginal = file.size;
+    file = await comprimirImagem(file);
+    const reducao = Math.round((1 - file.size / tamanhoOriginal) * 100);
+    if (reducao > 5) toast(`Imagem comprimida — redução de ${reducao}%`);
+  }
+
+  if (file.size > 5 * 1024 * 1024) { 
+    btn.disabled = false; btn.textContent = '⬆️ Enviar';
+    toast('Arquivo muito grande — máximo 5MB mesmo após compressão', 'error'); return; 
+  }
 
   const formData = new FormData();
   formData.append('file', file);
