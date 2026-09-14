@@ -28,6 +28,17 @@ export async function onRequestGet({ env, params, request }) {
   }
 }
 
+export async function onRequestPut({ env, params, request }) {
+  try {
+    const { descricao } = await request.json();
+    await env.DB.prepare('UPDATE arquivos SET descricao=? WHERE id=?')
+      .bind(descricao || '', params.id).run();
+    return Response.json({ ok: true });
+  } catch (e) {
+    return Response.json({ ok: false, error: e.message }, { status: 500 });
+  }
+}
+
 export async function onRequestDelete({ env, params }) {
   try {
     const row = await env.DB.prepare('SELECT nome_storage FROM arquivos WHERE id = ?')
