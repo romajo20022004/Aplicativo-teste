@@ -24,35 +24,30 @@ export async function onRequestGet({ env, request }) {
 export async function onRequestPost({ env, request }) {
   try {
     const formData = await request.formData();
-    const file         = formData.get('file');
-    const paciente_id  = formData.get('paciente_id');
+    const file          = formData.get('file');
+    const paciente_id   = formData.get('paciente_id');
     const prontuario_id = formData.get('prontuario_id') || null;
-    const descricao    = formData.get('descricao') || '';
+    const descricao     = formData.get('descricao') || '';
 
     if (!file || !paciente_id)
       return Response.json({ ok: false, error: 'Arquivo e paciente são obrigatórios' }, { status: 400 });
 
-    // Validar tamanho (2MB)
     if (file.size > 5 * 1024 * 1024)
       return Response.json({ ok: false, error: 'Arquivo muito grande — máximo 5MB' }, { status: 400 });
 
-    // Validar tipo
     const tiposPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
     if (!tiposPermitidos.includes(file.type))
       return Response.json({ ok: false, error: 'Tipo não permitido — use JPG, PNG ou PDF' }, { status: 400 });
 
-    // Gerar nome único no storage
     const ext = file.name.split('.').pop();
     const nomeStorage = `paciente_${paciente_id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
 
-    // Upload para R2
     const arrayBuffer = await file.arrayBuffer();
     await env.FILES_BUCKET.put(nomeStorage, arrayBuffer, {
       httpMetadata: { contentType: file.type },
       customMetadata: { paciente_id: String(paciente_id), nome_original: file.name }
     });
 
-    // Salvar referência no D1
     const result = await env.DB.prepare(`
       INSERT INTO arquivos (paciente_id, prontuario_id, nome_original, nome_storage, tipo_mime, tamanho, descricao)
       VALUES (?, ?, ?, ?, ?, ?, ?)
