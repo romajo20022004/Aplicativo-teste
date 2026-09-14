@@ -1,57 +1,67 @@
-// functions/api/arquivos/[id].js
-export async function onRequestGet({ env, params, request }) {
+// functions/api/arquivos.js
+export async function onRequestGet({ env, request }) {
   try {
     const url = new URL(request.url);
-    const download = url.searchParams.get('download') === '1';
+    const paciente_id   = url.searchParams.get('paciente_id') || '';
+    const prontuario_id = url.searchParams.get('prontuario_id') || '';
 
-    const row = await env.DB.prepare('SELECT * FROM arquivos WHERE id = ?')
-      .bind(params.id).first();
-    if (!row) return Response.json({ ok: false, error: 'Não encontrado' }, { status: 404 });
-
-    // Se pedir o arquivo, buscar do R2 e retornar
-    if (download) {
-      const obj = await env.FILES_BUCKET.get(row.nome_storage);
-      if (!obj) return Response.json({ ok: false, error: 'Arquivo não encontrado no storage' }, { status: 404 });
-
-      return new Response(obj.body, {
-        headers: {
-          'Content-Type': row.tipo_mime,
-          'Content-Disposition': `inline; filename="${row.nome_original}"`,
-          'Cache-Control': 'private, max-age=3600'
-        }
-      });
+    const todos = url.searchParams.get('todos') === '1';
+    let query = `SELECT * FROM arquivos WHERE 1=1`;
+    const params = [];
+    if (!todos) {
+      if (paciente_id)   { query += ' AND paciente_id = ?';   params.push(paciente_id); }
+      if (prontuario_id) { query += ' AND prontuario_id = ?'; params.push(prontuario_id); }
     }
+    query += ' ORDER BY criado_em DESC';
 
-    return Response.json({ ok: true, data: row });
+    const result = await env.DB.prepare(query).bind(...params).all();
+    return Response.json({ ok: true, data: result.results });
   } catch (e) {
     return Response.json({ ok: false, error: e.message }, { status: 500 });
   }
 }
 
-export async function onRequestPut({ env, params, request }) {
+export async function onRequestPost({ env, request }) {
   try {
-    const { descricao } = await request.json();
-    await env.DB.prepare('UPDATE arquivos SET descricao=? WHERE id=?')
-      .bind(descricao || '', params.id).run();
-    return Response.json({ ok: true });
-  } catch (e) {
-    return Response.json({ ok: false, error: e.message }, { status: 500 });
-  }
-}
+    const formData = await request.formData();
+    const file         = formData.get('file');
+    const paciente_id  = formData.get('paciente_id');
+    const prontuario_id = formData.get('prontuario_id') || null;
+    const descricao    = formData.get('descricao') || '';
 
-export async function onRequestDelete({ env, params }) {
-  try {
-    const row = await env.DB.prepare('SELECT nome_storage FROM arquivos WHERE id = ?')
-      .bind(params.id).first();
-    if (!row) return Response.json({ ok: false, error: 'Não encontrado' }, { status: 404 });
+    if (!file || !paciente_id)
+      return Response.json({ ok: false, error: 'Arquivo e paciente são obrigatórios' }, { status: 400 });
 
-    // Remover do R2
-    await env.FILES_BUCKET.delete(row.nome_storage);
+    // Validar tamanho (2MB)
+    if (file.size > 5 * 1024 * 1024)
+      return Response.json({ ok: false, error: 'Arquivo muito grande — máximo 5MB' }, { status: 400 });
 
-    // Remover do banco
-    await env.DB.prepare('DELETE FROM arquivos WHERE id = ?').bind(params.id).run();
+    // Validar tipo
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    if (!tiposPermitidos.includes(file.type))
+      return Response.json({ ok: false, error: 'Tipo não permitido — use JPG, PNG ou PDF' }, { status: 400 });
 
-    return Response.json({ ok: true });
+    // Gerar nome único no storage
+    const ext = file.name.split('.').pop();
+    const nomeStorage = `paciente_${paciente_id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+    // Upload para R2
+    const arrayBuffer = await file.arrayBuffer();
+    await env.FILES_BUCKET.put(nomeStorage, arrayBuffer, {
+      httpMetadata: { contentType: file.type },
+      customMetadata: { paciente_id: String(paciente_id), nome_original: file.name }
+    });
+
+    // Salvar referência no D1
+    const result = await env.DB.prepare(`
+      INSERT INTO arquivos (paciente_id, prontuario_id, nome_original, nome_storage, tipo_mime, tamanho, descricao)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      paciente_id, prontuario_id, file.name, nomeStorage,
+      file.type, file.size, descricao
+    ).run();
+
+    return Response.json({ ok: true, id: result.meta.last_row_id }, { status: 201 });
   } catch (e) {
     return Response.json({ ok: false, error: e.message }, { status: 500 });
   }
